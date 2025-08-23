@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="专业拳击/搏击训练计时器 - 支持回合计时、休息提醒、多样化提示音效">
+    <meta name="keywords" content="拳击计时器,搏击训练,HIIT,回合计时,训练助手">
+    <meta name="theme-color" content="#121212">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Boxing Timer Pro">
+    
+    <title>Boxing Timer Pro - 专业拳击训练计时器</title>
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.js" as="script">
+    <link rel="preload" href="/src/styles/main.css" as="style">
+    
+    <!-- Critical CSS inline for better performance -->
+    <style>
+        /* Critical loading styles - 匹配设计规范颜色 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #1C1C1E;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1C1C1E;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #48484A;
+            border-top: 3px solid #34C759;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-text {
+            margin-top: 16px;
+            font-size: 16px;
+            opacity: 0.7;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading Boxing Timer Pro...</div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="hidden">
+        <!-- 计时主界面（Timer Setup） -->
+        <div id="timer-setup-view" class="view active">
+            <!-- 顶部导航栏 -->
+            <header class="header">
+                <h1 class="page-title">Boxing Timer Pro</h1>
+                <div class="preset-selector">
+                    <button id="preset-dropdown" class="preset-btn" aria-label="选择预设">
+                        <span id="current-preset-name">MyPreset</span>
+                        <span class="dropdown-arrow">▾</span>
+                    </button>
+                </div>
+                <button id="menu-btn" class="icon-btn" aria-label="打开菜单">
+                    <span class="menu-icon">⋮</span>
+                </button>
+            </header>
+            
+            <main class="main-content">
+                <!-- 回合选择区域 -->
+                <section class="rounds-section">
+                    <h2 class="section-title">ROUNDS:</h2>
+                    <div class="rounds-selector">
+                        <button id="rounds-minus" class="round-btn" aria-label="减少回合">−</button>
+                        <div class="rounds-display" id="rounds-count">20</div>
+                        <button id="rounds-plus" class="round-btn" aria-label="增加回合">+</button>
+                    </div>
+                </section>
+
+                <!-- 阶段时长区域 -->
+                <section class="phases-section">
+                    <h2 class="section-title">阶段时长：</h2>
+                    <div class="phases-list">
+                        <div class="phase-item" data-phase="prepare">
+                            <span class="phase-label">PREPARE</span>
+                            <button class="time-pill prepare" id="prepare-time" aria-label="设置准备时长">
+                                00:10
+                            </button>
+                        </div>
+                        <div class="phase-item" data-phase="round">
+                            <span class="phase-label">ROUND</span>
+                            <button class="time-pill round" id="round-time" aria-label="设置回合时长">
+                                02:00
+                            </button>
+                        </div>
+                        <div class="phase-item" data-phase="warning">
+                            <span class="phase-label">WARNING</span>
+                            <button class="time-pill warning" id="warning-time" aria-label="设置警告时长">
+                                00:10
+                            </button>
+                        </div>
+                        <div class="phase-item" data-phase="rest">
+                            <span class="phase-label">REST</span>
+                            <button class="time-pill rest" id="rest-time" aria-label="设置休息时长">
+                                00:50
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 底部操作区域 -->
+                <section class="action-section">
+                    <div class="total-time">
+                        <span class="total-label">Total:</span>
+                        <span id="total-time" class="total-value">56:00</span>
+                    </div>
+                    <button id="start-btn" class="btn-primary start-btn" aria-label="开始训练">
+                        START
+                    </button>
+                </section>
+            </main>
+        </div>
+
+        <!-- 阶段时长调整界面（Phase Time Adjustment） -->
+        <div id="phase-adjustment-view" class="view" style="display: none;">
+            <header class="header">
+                <button id="phase-back-btn" class="back-btn" aria-label="返回">‹</button>
+                <h1 class="page-title" id="phase-title">Round Duration</h1>
+            </header>
+            
+            <main class="main-content">
+                <!-- 当前时长显示 -->
+                <section class="current-time-section">
+                    <div class="phase-display">
+                        <div class="phase-badge" id="phase-badge">ROUND</div>
+                        <div class="current-time" id="current-time-display">02:00</div>
+                    </div>
+                </section>
+
+                <!-- 快速设置按钮 -->
+                <section class="quick-presets">
+                    <div class="preset-buttons" id="preset-buttons">
+                        <button class="preset-btn-time" data-time="120">02:00</button>
+                        <button class="preset-btn-time" data-time="180">03:00</button>
+                        <button class="preset-btn-time" data-time="300">05:00</button>
+                    </div>
+                </section>
+
+                <!-- 时长选择器 -->
+                <section class="time-picker-section">
+                    <div class="time-picker">
+                        <div class="picker-column">
+                            <div class="picker-wheel" id="minutes-picker">
+                                <!-- 分钟选择器 -->
+                            </div>
+                        </div>
+                        <div class="picker-separator">:</div>
+                        <div class="picker-column">
+                            <div class="picker-wheel" id="seconds-picker">
+                                <!-- 秒钟选择器 -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 确认按钮 -->
+                <section class="action-section">
+                    <button id="phase-done-btn" class="btn-primary done-btn" aria-label="完成设置">
+                        DONE
+                    </button>
+                </section>
+            </main>
+        </div>
+
+        <!-- 设置界面（Settings） -->
+        <div id="settings-view" class="view" style="display: none;">
+            <header class="header">
+                <h1 class="page-title">Settings</h1>
+                <button id="settings-done-btn" class="text-btn" aria-label="完成设置">完成</button>
+            </header>
+            
+            <main class="main-content">
+                <!-- 预设名称 -->
+                <section class="settings-section">
+                    <h2 class="section-title">PRESET NAME</h2>
+                    <div class="input-group">
+                        <input type="text" id="preset-name-input" class="text-input" value="MyPreset">
+                    </div>
+                </section>
+
+                <!-- 预设选项 -->
+                <section class="settings-section">
+                    <h2 class="section-title">PRESET OPTIONS</h2>
+                    <div class="settings-list">
+                        <button class="list-item" id="audio-alerts-btn" aria-label="音频和提醒设置">
+                            <span class="item-label">Audio & Alerts</span>
+                            <span class="item-arrow">▶</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 应用选项 -->
+                <section class="settings-section">
+                    <h2 class="section-title">APP OPTIONS</h2>
+                    <div class="settings-list">
+                        <button class="list-item" id="tv-connect-btn" aria-label="TV连接设置">
+                            <span class="item-label">TV Connect (External Timer)</span>
+                            <span class="item-arrow">▶</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 版本信息 -->
+                <section class="version-section">
+                    <div class="version-info">Version 3.0.5 (build 2533)</div>
+                </section>
+            </main>
+        </div>
+
+        <!-- 运行时界面（Timer Running） -->
+        <div id="timer-running-view" class="view timer-running" style="display: none;">
+            <div class="running-content">
+                <!-- 状态信息 -->
+                <div class="timer-status">
+                    <div class="round-info" id="round-info">Round 1 / 20</div>
+                    <div class="phase-info" id="phase-info">PREPARE</div>
+                </div>
+                
+                <!-- 大号计时显示 -->
+                <div class="timer-display-large">
+                    <div id="main-timer" class="main-timer">00:10</div>
+                </div>
+                
+                <!-- 控制按钮 -->
+                <div class="running-controls">
+                    <button id="pause-btn" class="control-btn" aria-label="暂停">PAUSE</button>
+                    <button id="stop-btn" class="control-btn secondary" aria-label="停止">STOP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio elements for sound effects -->
+    <div id="audio-container" class="hidden">
+        <audio id="bell-sound" preload="auto" aria-hidden="true">
+            <source src="/assets/audio/boxing-bell.mp3" type="audio/mpeg">
+            <source src="/assets/audio/boxing-bell.wav" type="audio/wav">
+        </audio>
+        <audio id="whistle-sound" preload="auto" aria-hidden="true">
+            <source src="/assets/audio/whistle.mp3" type="audio/mpeg">
+            <source src="/assets/audio/whistle.wav" type="audio/wav">
+        </audio>
+    </div>
+
+    <!-- App Scripts -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
