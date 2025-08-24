@@ -2,15 +2,22 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
     <meta name="description" content="专业拳击/搏击训练计时器 - 支持回合计时、休息提醒、多样化提示音效">
     <meta name="keywords" content="拳击计时器,搏击训练,HIIT,回合计时,训练助手">
+    
+    <!-- 强制Safari不缓存 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Boxing Timer Pro">
     
-    <title>Boxing Timer Pro - 专业拳击训练计时器</title>
+    <title>Boxing Timer Pro - 专业拳击训练计时器 [Safari Fix v2.1]</title>
     
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -20,9 +27,12 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/src/main.js" as="script">
-    <link rel="preload" href="/src/styles/main.css" as="style">
+    <!-- Preload critical resources with correct MIME types -->
+    <link rel="modulepreload" href="/src/main-test.js?v=safari-fix-20250824">
+    <link rel="preload" href="/src/styles/main.css?v=color-fix-20250825" as="style">
+    
+    <!-- Load main CSS directly to avoid MIME type issues -->
+    <link rel="stylesheet" href="/src/styles/main.css?v=color-fix-20250825">
     
     <!-- Critical CSS inline for better performance -->
     <style>
@@ -54,7 +64,7 @@
             width: 48px;
             height: 48px;
             border: 3px solid #48484A;
-            border-top: 3px solid #34C759;
+            border-top: 3px solid #FF9500;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -70,8 +80,152 @@
             100% { transform: rotate(360deg); }
         }
         
-        .hidden {
-            display: none !important;
+    </style>
+    <style id="perfect-circular-buttons">
+        /* @CMAI: 强制修复主应用time-tag按钮颜色，确保与CSS变量一致 */
+        .time-tag.prepare {
+            background: var(--color-prepare) !important; /* 黄色 */
+            color: #000000 !important;
+        }
+        .time-tag.round {
+            background: var(--color-round) !important; /* 绿色 */
+            color: #000000 !important;
+        }
+        .time-tag.warning {
+            background: var(--color-warning) !important; /* 橙色 */
+            color: #000000 !important;
+        }
+        .time-tag.rest {
+            background: var(--color-rest) !important; /* 红色 */
+            color: #FFFFFF !important;
+        }
+        
+        /* ========== Play/Pause 按钮 - 完全重构 ========== */
+        
+        /* 按钮基础样式 */
+        .play-pause-button {
+            /* 尺寸：遵循Apple HIG 44px最小触控目标 */
+            width: 60px;
+            height: 60px;
+            
+            /* 形状：完美圆形 */
+            border-radius: 50%;
+            
+            /* 重置浏览器默认样式 */
+            border: none;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            
+            /* 背景：半透明白色 + 毛玻璃效果 */
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            
+            /* 阴影：立体感 */
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            
+            /* 布局：Flexbox居中 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            /* 交互 */
+            cursor: pointer;
+            
+            /* 动画：流畅过渡 */
+            transition: all 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+            
+            /* 位置 */
+            position: relative;
+        }
+        
+        /* 悬停效果 */
+        .play-pause-button:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 按压效果 */
+        .play-pause-button:active {
+            transform: scale(0.95);
+            transition: all 0.1s cubic-bezier(0.2, 0, 0.2, 1);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        /* 暂停条样式 */
+        .pause-bars {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pause-bars .bar {
+            width: 4px;
+            height: 16px;
+            background: #333333;
+            border-radius: 1px;
+        }
+        
+        /* 播放箭头样式 */
+        .play-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333333;
+        }
+        
+        .play-arrow svg {
+            margin-left: 2px; /* 视觉居中微调 */
+        }
+        
+        /* 停止按钮悬停效果 */
+        #stop-btn:hover {
+            transform: scale(1.08) !important;
+            box-shadow: 0 6px 24px rgba(255, 59, 48, 0.6) !important;
+        }
+        
+        #stop-btn:active {
+            transform: scale(0.95) !important;
+            transition: all 0.1s ease !important;
+        }
+        
+        /* 暂停条动画效果 */
+        @keyframes pauseToPlay {
+            0% {
+                width: 6px;
+                transform: translateX(0);
+            }
+            50% {
+                width: 3px;
+                transform: translateX(2px);
+            }
+            100% {
+                width: 0;
+                transform: translateX(3px);
+            }
+        }
+        
+        @keyframes playToPause {
+            0% {
+                width: 0;
+                transform: translateX(3px);
+            }
+            50% {
+                width: 3px;
+                transform: translateX(2px);
+            }
+            100% {
+                width: 6px;
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
@@ -109,7 +263,7 @@
                     <div class="phase-row" data-phase="round">
                         <span class="phase-label">ROUND</span>
                         <button class="time-tag round" id="round-time" aria-label="设置回合时长">
-                            00:30
+                            00:10
                         </button>
                     </div>
                     
@@ -135,7 +289,7 @@
                         <button id="menu-btn" class="menu-btn" aria-label="打开菜单">⋮</button>
                     </div>
                     <div class="total-time">
-                        <span id="total-time" class="total-value">09:40</span>
+                        <span id="total-time" class="total-value">06:50</span>
                         <span class="total-label">total</span>
                     </div>
                 </section>
@@ -294,28 +448,69 @@
             </main>
         </div>
 
-        <!-- 运行时界面（Timer Running） -->
-        <div id="timer-running-view" class="view timer-running" style="display: none;">
-            <div class="running-content">
-                <!-- 状态信息 -->
-                <div class="timer-status">
-                    <div class="round-info" id="round-info">Round 1 / 20</div>
-                    <div class="phase-info" id="phase-info">PREPARE</div>
-                </div>
-                
-                <!-- 大号计时显示 -->
-                <div class="timer-display-large">
-                    <div id="main-timer" class="main-timer">00:10</div>
-                </div>
-                
-                <!-- 控制按钮 -->
-                <div class="running-controls">
-                    <button id="pause-btn" class="control-btn" aria-label="暂停">PAUSE</button>
-                    <button id="stop-btn" class="control-btn secondary" aria-label="停止">STOP</button>
+        <!-- 运行时界面（Timer Running） - 按照参考截图重设计 -->
+        <div id="timer-running-view" class="view timer-running phase-prepare" style="display: none;">
+            <!-- 主时钟显示区 - 中上部 -->
+            <div class="main-timer-container">
+                <div id="main-timer" class="main-timer">00:10</div>
+            </div>
+            
+            <!-- 阶段信息卡片 - 中部 -->
+            <div class="phase-card-container">
+                <div class="phase-card" id="phase-card">
+                    <div class="phase-title" id="phase-info">PREPARE</div>
+                    <div class="phase-round" id="round-number">01</div>
                 </div>
             </div>
+            
+            <!-- 底部控制区 -->
+            <div class="running-controls-container">
+                <!-- 左侧：暂停按钮 -->
+                <!-- Play/Pause 按钮 - 完全重构 -->
+                <button id="play-pause-button" class="play-pause-button" aria-label="暂停">
+                    <!-- 暂停状态图标 -->
+                    <div class="pause-bars">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                    
+                    <!-- 播放状态图标 -->
+                    <div class="play-arrow" style="display: none;">
+                        <svg width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M6 4l10 6-10 6V4z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                </button>
+                
+                <!-- 中央：总剩余时间 -->
+                <div class="total-progress" id="total-progress">
+                    09:40<br><span class="progress-label">remaining</span>
+                </div>
+                
+                <!-- 右侧：停止按钮 -->
+                <button id="stop-btn" class="control-btn circular stop" aria-label="停止" style="
+                    width: 60px !important;
+                    height: 60px !important;
+                    min-width: 60px !important;
+                    min-height: 60px !important;
+                    max-width: 60px !important;
+                    max-height: 60px !important;
+                    border-radius: 50% !important;
+                    border: none !important;
+                    background: rgba(255, 59, 48, 0.85) !important;
+                    color: white !important;
+                    font-size: 18px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    cursor: pointer !important;
+                    font-weight: 600 !important;
+                    box-shadow: 0 4px 20px rgba(255, 59, 48, 0.4) !important;
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+                    transition: all 0.2s ease !important;
+                ">■</button>
+            </div>
         </div>
-    </div>
 
     <!-- Audio elements for sound effects -->
     <div id="audio-container" class="hidden">
@@ -329,7 +524,7 @@
         </audio>
     </div>
 
-    <!-- App Scripts -->
-    <script type="module" src="/src/main.js"></script>
+    <!-- App Scripts - 使用测试版避免CSS导入问题 -->
+    <script type="module" src="/src/main-test.js?v=safari-fix-20250824"></script>
 </body>
 </html>

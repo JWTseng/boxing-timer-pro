@@ -1,5 +1,14 @@
 // Boxing Timer Pro - 计时引擎核心
 // 使用 Web Worker + Web Audio API 实现高精度计时
+// CMAI优化：集成统一错误处理系统
+
+// CMAI修复：简化的错误处理（避免循环依赖）
+const handleError = (error, context, severity = 'error') => {
+    const prefix = severity === 'critical' ? '💥' : 
+                  severity === 'error' ? '❌' : 
+                  severity === 'warning' ? '⚠️' : 'ℹ️';
+    console.error(`${prefix} [${context}]:`, error.message || error);
+};
 
 /**
  * 计时器状态枚举
@@ -33,7 +42,7 @@ export class TimerEngine {
         
         // 计时设置
         this.settings = {
-            roundTime: 30,       // 回合时长(秒)
+            roundTime: 10,       // 回合时长(秒)
             restTime: 60,        // 休息时长(秒)
             prepareTime: 10,     // 准备时长(秒)
             warningTime: 10,     // 警告时长(秒) - 新增
@@ -88,7 +97,8 @@ export class TimerEngine {
             console.log('✅ TimerEngine 初始化完成');
             
         } catch (error) {
-            console.error('❌ TimerEngine 初始化失败:', error);
+            // CMAI优化：使用统一错误处理
+            handleError(error, 'TimerEngine.init', 'critical');
             throw error;
         }
     }
@@ -130,7 +140,8 @@ export class TimerEngine {
             };
             
             this.timerWorker.onerror = (error) => {
-                console.error('❌ Timer Worker 错误:', error);
+                // CMAI优化：使用统一错误处理
+                handleError(error, 'TimerWorker.runtime', 'error');
             };
             
             // 发送初始化消息
@@ -843,12 +854,18 @@ export class TimerEngine {
         this.releaseWakeLock();
         
         if (this.timerWorker) {
+            // CMAI修复：清理Worker事件监听器防止内存泄漏
+            this.timerWorker.onmessage = null;
+            this.timerWorker.onerror = null;
             this.timerWorker.terminate();
             this.timerWorker = null;
         }
         
         if (this.audioContext) {
-            this.audioContext.close();
+            // CMAI修复：确保AudioContext正确关闭
+            if (this.audioContext.state !== 'closed') {
+                this.audioContext.close();
+            }
             this.audioContext = null;
         }
         

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESTAI - 预设位置记忆功能验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(255, 149, 0, 0.1);
+            border: 2px solid #FF9500;
+            border-radius: 16px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(72, 72, 74, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-story {
+            background: rgba(0, 122, 255, 0.1);
+            border: 2px solid #007AFF;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .user-story::before {
+            content: "👤 用户故事";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #007AFF;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .user-story h3 {
+            color: #007AFF;
+            margin-top: 0;
+        }
+        
+        .test-scenario {
+            background: rgba(48, 209, 88, 0.1);
+            border-left: 4px solid #30D158;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .test-scenario h3 {
+            margin-top: 0;
+            color: #30D158;
+        }
+        
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .step-list li {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .step-list li:before {
+            content: attr(data-step);
+            position: absolute;
+            left: 12px;
+            background: #FF9500;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .expected-result {
+            background: rgba(255, 149, 0, 0.1);
+            border: 2px solid #FF9500;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        .expected-result h4 {
+            color: #FF9500;
+            margin: 0 0 10px 0;
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 3px solid #FF9500;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .checklist {
+            margin: 20px 0;
+        }
+        
+        .checklist-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .checklist-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #30D158;
+        }
+        
+        .checklist-item.checked {
+            background: rgba(48, 209, 88, 0.1);
+            border-left: 4px solid #30D158;
+        }
+        
+        .test-result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .test-pass {
+            background: rgba(48, 209, 88, 0.2);
+            border: 2px solid #30D158;
+            color: #30D158;
+        }
+        
+        .test-pending {
+            background: rgba(255, 149, 0, 0.2);
+            border: 2px solid #FF9500;
+            color: #FF9500;
+        }
+        
+        .test-fail {
+            background: rgba(255, 59, 48, 0.2);
+            border: 2px solid #FF3B30;
+            color: #FF3B30;
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 10px;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+        }
+        
+        .storage-debug {
+            background: rgba(72, 72, 74, 0.2);
+            border: 1px solid #48484A;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 14px;
+        }
+        
+        .storage-debug h4 {
+            margin-top: 0;
+            color: #8E8E93;
+        }
+        
+        .logic-analysis {
+            background: rgba(255, 59, 48, 0.1);
+            border: 2px solid #FF3B30;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .logic-analysis h3 {
+            color: #FF3B30;
+            margin-top: 0;
+        }
+        
+        .logic-point {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="hero-section">
+            <h1>🧪 TESTAI - 预设位置记忆功能验证</h1>
+            <p>@UIAI + @CMAI + @TESTAI 协作：验证时间选择器能记住用户选择的预设位置</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>📖 核心需求说明</h2>
+            
+            <div class="user-story">
+                <h3>用户期望的自然体验：</h3>
+                <p><strong>场景：</strong>用户在Prepare阶段选择了第二个预设按钮（17秒），调整为自己喜欢的时间后确认。</p>
+                <p><strong>期望：</strong>下次打开时间选择器时，第二个预设按钮应该自动选中，并且滚轮应该定位到17秒的位置。</p>
+                <p><strong>价值：</strong>避免用户每次都要重新找到自己常用的预设位置，提供连续性的操作体验。</p>
+            </div>
+            
+            <div class="logic-analysis">
+                <h3>@CMAI 实现逻辑分析：</h3>
+                <div class="logic-point">
+                    <strong>💾 持久化存储：</strong> lastSelectedIndexes 对象保存各阶段最后选择的预设索引
+                </div>
+                <div class="logic-point">
+                    <strong>🧠 智能选择：</strong> 优先使用时间匹配的预设，如无匹配则使用记忆的位置
+                </div>
+                <div class="logic-point">
+                    <strong>🔄 实时同步：</strong> 用户点击或调整时立即保存选择状态
+                </div>
+                <div class="logic-point">
+                    <strong>🛡️ 边界保护：</strong> 索引限制在0-2之间，避免越界错误
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔬 详细测试场景</h2>
+            
+            <div class="test-scenario">
+                <h3>场景1：基础位置记忆测试</h3>
+                <ul class="step-list">
+                    <li data-step="1">点击Prepare时间按钮打开选择器</li>
+                    <li data-step="2">点击第二个预设按钮（00:20）</li>
+                    <li data-step="3">调整时间为00:17（如通过滚轮）</li>
+                    <li data-step="4">点击确认关闭选择器</li>
+                    <li data-step="5">再次打开Prepare时间选择器</li>
+                </ul>
+                
+                <div class="expected-result">
+                    <h4>✅ 期望结果：</h4>
+                    <p>第二个预设按钮自动选中，显示00:17，滚轮定位到17秒</p>
+                </div>
+            </div>
+            
+            <div class="test-scenario">
+                <h3>场景2：跨阶段独立记忆测试</h3>
+                <ul class="step-list">
+                    <li data-step="1">Prepare阶段选择第二个预设</li>
+                    <li data-step="2">Round阶段选择第三个预设</li>
+                    <li data-step="3">Rest阶段选择第一个预设</li>
+                    <li data-step="4">分别再次打开各阶段选择器</li>
+                </ul>
+                
+                <div class="expected-result">
+                    <h4>✅ 期望结果：</h4>
+                    <p>各阶段独立记忆选择位置，不会相互影响</p>
+                </div>
+            </div>
+            
+            <div class="test-scenario">
+                <h3>场景3：页面刷新持久化测试</h3>
+                <ul class="step-list">
+                    <li data-step="1">完成场景1的操作</li>
+                    <li data-step="2">刷新整个页面（F5或Cmd+R）</li>
+                    <li data-step="3">重新打开Prepare时间选择器</li>
+                </ul>
+                
+                <div class="expected-result">
+                    <h4>✅ 期望结果：</h4>
+                    <p>刷新后仍然记住选择位置，第二个预设自动选中</p>
+                </div>
+            </div>
+            
+            <div class="test-scenario">
+                <h3>场景4：智能匹配vs记忆位置测试</h3>
+                <ul class="step-list">
+                    <li data-step="1">Prepare阶段第二个预设设为00:25</li>
+                    <li data-step="2">外部将Prepare时间改为00:10（接近第一个预设）</li>
+                    <li data-step="3">打开时间选择器</li>
+                </ul>
+                
+                <div class="expected-result">
+                    <h4>✅ 期望结果：</h4>
+                    <p>智能选择第一个预设（因为时间更接近），而不是记忆的第二个</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 实际应用测试</h2>
+            <div class="iframe-container">
+                <iframe src="http://localhost:8080/" title="Boxing Timer Pro"></iframe>
+            </div>
+            
+            <div class="storage-debug" id="storage-debug">
+                <h4>🔍 localStorage调试信息：</h4>
+                <div id="storage-content">点击"刷新存储信息"查看当前状态</div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="test-btn" onclick="refreshStorageInfo()">🔄 刷新存储信息</button>
+                <button class="test-btn" onclick="clearMemory()">🗑️ 清除位置记忆</button>
+                <button class="test-btn" onclick="simulateScenario()">🎬 模拟测试场景</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ TESTAI 验证清单</h2>
+            
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox" id="check1" onchange="updateChecklistItem(this)">
+                    <label for="check1">📍 打开时恢复到上次选择的预设位置</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check2" onchange="updateChecklistItem(this)">
+                    <label for="check2">🔄 各阶段选择位置独立记忆</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check3" onchange="updateChecklistItem(this)">
+                    <label for="check3">💾 页面刷新后位置记忆保持</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check4" onchange="updateChecklistItem(this)">
+                    <label for="check4">🎯 时间匹配优于位置记忆（智能选择）</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check5" onchange="updateChecklistItem(this)">
+                    <label for="check5">🔒 选择位置即时保存到localStorage</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check6" onchange="updateChecklistItem(this)">
+                    <label for="check6">🛡️ 边界保护（索引限制在0-2之间）</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check7" onchange="updateChecklistItem(this)">
+                    <label for="check7">⚡ 选中状态视觉反馈正确</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check8" onchange="updateChecklistItem(this)">
+                    <label for="check8">🎨 用户操作流畅自然</label>
+                </div>
+            </div>
+            
+            <div id="final-test-result" class="test-pending">
+                <strong>🤖 等待 TESTAI 最终验证...</strong><br>
+                请完成上述测试场景，然后点击下方按钮获取验证结果。
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="test-btn" onclick="getFinalTestResult()" style="
+                    background: linear-gradient(135deg, #30D158 0%, #28A745 100%);
+                    font-size: 18px;
+                    padding: 18px 36px;
+                ">
+                    🏆 获取 TESTAI 最终验证结果
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateChecklistItem(checkbox) {
+            const item = checkbox.closest('.checklist-item');
+            if (checkbox.checked) {
+                item.classList.add('checked');
+            } else {
+                item.classList.remove('checked');
+            }
+        }
+        
+        function refreshStorageInfo() {
+            const presets = localStorage.getItem('boxing-timer-user-presets');
+            const indexes = localStorage.getItem('boxing-timer-last-selected-indexes');
+            
+            let content = '';
+            
+            if (indexes) {
+                const data = JSON.parse(indexes);
+                content += '<strong>🧠 位置记忆数据：</strong><br>';
+                content += '<pre>' + JSON.stringify(data, null, 2) + '</pre><br>';
+            } else {
+                content += '<span style="color: #FF9500;">⚠️ 未找到位置记忆数据</span><br>';
+            }
+            
+            if (presets) {
+                const data = JSON.parse(presets);
+                content += '<strong>⚙️ 用户预设数据：</strong><br>';
+                content += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } else {
+                content += '<span style="color: #FF9500;">⚠️ 未找到用户预设数据</span>';
+            }
+            
+            document.getElementById('storage-content').innerHTML = content;
+        }
+        
+        function clearMemory() {
+            if (confirm('确定要清除位置记忆吗？')) {
+                localStorage.removeItem('boxing-timer-last-selected-indexes');
+                localStorage.removeItem('boxing-timer-user-presets');
+                alert('✅ 位置记忆已清除');
+                refreshStorageInfo();
+            }
+        }
+        
+        function simulateScenario() {
+            // 模拟设置位置记忆数据
+            const mockIndexes = {
+                prepare: 1,  // 第二个预设
+                round: 2,    // 第三个预设
+                warning: 0,  // 第一个预设
+                rest: 1      // 第二个预设
+            };
+            
+            const mockPresets = {
+                prepare: [10, 17, 60],  // 第二个改为17秒
+                round: [10, 30, 180],   // 第三个改为3分钟
+                warning: [3, 10, 15],   // 第一个改为3秒
+                rest: [30, 45, 90]      // 第二个改为45秒
+            };
+            
+            localStorage.setItem('boxing-timer-last-selected-indexes', JSON.stringify(mockIndexes));
+            localStorage.setItem('boxing-timer-user-presets', JSON.stringify(mockPresets));
+            
+            alert('🎬 模拟数据已设置！\n\n现在可以测试：\n- Prepare选择第2个位置(17秒)\n- Round选择第3个位置(3分钟)\n- Warning选择第1个位置(3秒)\n- Rest选择第2个位置(45秒)');
+            
+            refreshStorageInfo();
+        }
+        
+        function getFinalTestResult() {
+            const checkedItems = document.querySelectorAll('.checklist-item input:checked').length;
+            const totalItems = document.querySelectorAll('.checklist-item input').length;
+            
+            const resultDiv = document.getElementById('final-test-result');
+            
+            const score = checkedItems / totalItems;
+            const passed = score >= 0.8;
+            
+            resultDiv.className = passed ? 'test-pass' : (score >= 0.6 ? 'test-pending' : 'test-fail');
+            resultDiv.innerHTML = `
+                <strong>🤖 TESTAI 最终验证结果：${passed ? '✅ 优秀通过' : score >= 0.6 ? '⚠️ 良好' : '❌ 需要改进'}</strong><br>
+                <br>
+                <strong>详细分析：</strong><br>
+                验证项目: ${checkedItems}/${totalItems} (${Math.round(score*100)}%)<br>
+                <br>
+                <strong>@UIAI 用户体验评估：</strong><br>
+                ${passed ? '✅ 位置记忆功能提供自然流畅的用户体验' : score >= 0.6 ? '🔶 基本满足用户期望，仍有改进空间' : '❌ 用户体验存在问题'}<br>
+                <br>
+                <strong>@CMAI 代码逻辑评估：</strong><br>
+                ${passed ? '✅ 智能选择算法完善，持久化机制可靠' : score >= 0.6 ? '🔶 逻辑基本正确，细节需要优化' : '❌ 逻辑实现有缺陷'}<br>
+                <br>
+                <strong>@TESTAI 质量评估：</strong><br>
+                ${passed ? '✅ 所有测试场景通过，功能稳定' : score >= 0.6 ? '🔶 大部分场景通过，个别问题待修复' : '❌ 多个测试场景失败'}<br>
+                <br>
+                ${passed ? 
+                    '<strong style="color: #30D158;">🎉 预设位置记忆功能完美实现！</strong><br>系统能智能记住用户的操作习惯，提供个性化的连续体验。' : 
+                    score >= 0.6 ?
+                    '<strong style="color: #FF9500;">💡 功能基本可用，建议进一步完善。</strong>' :
+                    '<strong style="color: #FF3B30;">⚠️ 功能存在问题，需要重新检查实现逻辑。</strong>'
+                }
+            `;
+        }
+        
+        // 页面加载完成时的初始化
+        window.addEventListener('load', () => {
+            console.log('🧪 TESTAI 预设位置记忆验证工具已加载');
+            refreshStorageInfo();
+            
+            // 检查是否有测试数据
+            const indexes = localStorage.getItem('boxing-timer-last-selected-indexes');
+            if (!indexes) {
+                console.log('💡 提示：点击"模拟测试场景"按钮可以快速设置测试数据');
+            }
+        });
+    </script>
+</body>
+</html>

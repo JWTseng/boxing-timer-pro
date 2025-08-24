@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boxing Timer 启动测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1C1C1E;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .status-card {
+            background: #2C2C2E;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+            text-align: left;
+        }
+        .success { border-left: 4px solid #4CAF50; }
+        .error { border-left: 4px solid #FF5722; }
+        .warning { border-left: 4px solid #FF9500; }
+        .log-output {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-button:hover {
+            background: #0056CC;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🥊 Boxing Timer Pro 启动诊断</h1>
+        <p>CMAI系统健康检查工具</p>
+        
+        <div id="overall-status" class="status-card">
+            <h3>🔍 整体状态</h3>
+            <div id="status-content">正在检测...</div>
+        </div>
+        
+        <button class="test-button" onclick="runStartupTest()">🚀 运行启动测试</button>
+        <button class="test-button" onclick="clearLogs()">🧹 清理日志</button>
+        
+        <div class="log-output" id="log-output">
+等待测试开始...
+        </div>
+    </div>
+
+    <script type="module">
+        let logOutput = document.getElementById('log-output');
+        let statusContent = document.getElementById('status-content');
+        let overallStatus = document.getElementById('overall-status');
+        
+        // 重写console方法以捕获日志
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+            logOutput.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        console.log = (...args) => {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'log');
+        };
+        
+        console.error = (...args) => {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        console.warn = (...args) => {
+            originalWarn.apply(console, args);
+            addLog(args.join(' '), 'warn');
+        };
+        
+        // 全局错误捕获
+        window.addEventListener('error', (event) => {
+            addLog(`全局错误: ${event.error?.message || event.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            addLog(`未处理的Promise拒绝: ${event.reason}`, 'error');
+        });
+        
+        // 测试函数
+        window.runStartupTest = async function() {
+            addLog('🔍 开始Boxing Timer Pro启动测试', 'log');
+            
+            try {
+                // 导入SimpleHealthChecker  
+                addLog('📦 导入简化版健康检查器...', 'log');
+                const { SimpleHealthChecker } = await import('/src/utils/SimpleHealthChecker.js');
+                
+                // 运行健康检查
+                const checker = new SimpleHealthChecker();
+                const results = await checker.runBasicCheck();
+                
+                // 更新状态显示
+                if (results.overall) {
+                    overallStatus.className = 'status-card success';
+                    statusContent.innerHTML = `
+                        <strong>✅ 系统健康</strong><br>
+                        所有关键检查都通过了！应用可以正常启动。
+                    `;
+                } else {
+                    overallStatus.className = 'status-card error';
+                    const summary = checker.getStartupSummary();
+                    statusContent.innerHTML = `
+                        <strong>❌ 系统异常</strong><br>
+                        发现 ${summary.errors} 个错误<br>
+                        发现 ${summary.warnings} 个警告<br>
+                        <small>建议: ${summary.recommendations.join(', ')}</small>
+                    `;
+                }
+                
+                // 尝试启动主应用
+                addLog('🚀 尝试启动主应用...', 'log');
+                const { default: BoxingTimerApp } = await import('/src/main.js');
+                
+                if (typeof BoxingTimerApp === 'function') {
+                    addLog('✅ 主应用类加载成功', 'log');
+                    
+                    // 创建应用实例（但不实际初始化，避免影响主页面）
+                    addLog('🎯 应用启动测试完成', 'log');
+                } else {
+                    addLog('❌ 主应用类加载失败', 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 启动测试失败: ${error.message}`, 'error');
+                overallStatus.className = 'status-card error';
+                statusContent.innerHTML = `
+                    <strong>💥 启动失败</strong><br>
+                    ${error.message}<br>
+                    <small>请检查浏览器控制台获取详细信息</small>
+                `;
+            }
+        };
+        
+        window.clearLogs = function() {
+            logOutput.textContent = '日志已清理...\n';
+        };
+        
+        // 页面加载完成后自动运行测试
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('📄 诊断页面加载完成', 'log');
+            setTimeout(runStartupTest, 1000);
+        });
+    </script>
+</body>
+</html>

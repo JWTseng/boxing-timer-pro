@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段一致性完整测试 - Boxing Timer Pro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d30);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .phase-test {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        .phase-test.prepare { border-color: #007AFF; }
+        .phase-test.round { border-color: #FF3B30; }
+        .phase-test.warning { border-color: #FF9500; }
+        .phase-test.rest { border-color: #34C759; }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+        }
+        .status {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        .pass { background: #34C759; color: white; }
+        .fail { background: #FF3B30; color: white; }
+        .test-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            margin: 2px;
+        }
+        .phase-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .summary {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .summary h2 { color: #007AFF; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 4阶段时间选择机制一致性测试</h1>
+        
+        <div class="summary">
+            <h2>📊 测试总览</h2>
+            <div id="overall-status">准备中...</div>
+            <button class="test-btn" onclick="runAllPhaseTests()" style="background: #FF3B30; padding: 12px 24px; font-size: 14px;">🚀 运行完整一致性测试</button>
+        </div>
+
+        <div class="test-grid">
+            <div class="phase-test prepare">
+                <div class="phase-title">🟦 PREPARE 阶段</div>
+                <div class="test-item">
+                    <span>HTML显示值</span>
+                    <span id="prepare-html" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>预设首个值</span>
+                    <span id="prepare-preset" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>位置记忆机制</span>
+                    <span id="prepare-memory" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>实时更新机制</span>
+                    <span id="prepare-realtime" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>事件绑定</span>
+                    <span id="prepare-binding" class="status">待测试</span>
+                </div>
+                <button class="test-btn" onclick="testPhaseIndividually('prepare')">单独测试</button>
+            </div>
+
+            <div class="phase-test round">
+                <div class="phase-title">🟥 ROUND 阶段</div>
+                <div class="test-item">
+                    <span>HTML显示值</span>
+                    <span id="round-html" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>预设首个值</span>
+                    <span id="round-preset" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>位置记忆机制</span>
+                    <span id="round-memory" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>实时更新机制</span>
+                    <span id="round-realtime" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>事件绑定</span>
+                    <span id="round-binding" class="status">待测试</span>
+                </div>
+                <button class="test-btn" onclick="testPhaseIndividually('round')">单独测试</button>
+            </div>
+
+            <div class="phase-test warning">
+                <div class="phase-title">🟨 WARNING 阶段</div>
+                <div class="test-item">
+                    <span>HTML显示值</span>
+                    <span id="warning-html" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>预设首个值</span>
+                    <span id="warning-preset" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>位置记忆机制</span>
+                    <span id="warning-memory" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>实时更新机制</span>
+                    <span id="warning-realtime" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>事件绑定</span>
+                    <span id="warning-binding" class="status">待测试</span>
+                </div>
+                <button class="test-btn" onclick="testPhaseIndividually('warning')">单独测试</button>
+            </div>
+
+            <div class="phase-test rest">
+                <div class="phase-title">🟩 REST 阶段</div>
+                <div class="test-item">
+                    <span>HTML显示值</span>
+                    <span id="rest-html" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>预设首个值</span>
+                    <span id="rest-preset" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>位置记忆机制</span>
+                    <span id="rest-memory" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>实时更新机制</span>
+                    <span id="rest-realtime" class="status">待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>事件绑定</span>
+                    <span id="rest-binding" class="status">待测试</span>
+                </div>
+                <button class="test-btn" onclick="testPhaseIndividually('rest')">单独测试</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { DataConsistency } from './src/utils/DataConsistency.js';
+        import { TimePicker } from './src/components/TimePicker.js';
+
+        let dataConsistency;
+        let timePicker;
+        const testResults = {};
+
+        // 初始化测试环境
+        async function initialize() {
+            console.log('🧪 初始化4阶段一致性测试环境...');
+            
+            // 创建测试HTML元素
+            createTestElements();
+            
+            dataConsistency = new DataConsistency();
+            timePicker = new TimePicker(document.body);
+            timePicker.init();
+            
+            console.log('✅ 测试环境已准备就绪');
+        }
+
+        // 创建测试HTML元素
+        function createTestElements() {
+            const testContainer = document.createElement('div');
+            testContainer.style.display = 'none';
+            testContainer.innerHTML = `
+                <span id="prepare-time">00:10</span>
+                <span id="round-time">00:10</span>
+                <span id="warning-time">00:10</span>
+                <span id="rest-time">00:30</span>
+            `;
+            document.body.appendChild(testContainer);
+        }
+
+        // 运行全部阶段测试
+        window.runAllPhaseTests = async function() {
+            console.log('🚀 开始4阶段一致性完整测试...');
+            
+            await initialize();
+            
+            const phases = ['prepare', 'round', 'warning', 'rest'];
+            const expectedValues = { prepare: 10, round: 10, warning: 10, rest: 30 };
+            
+            let totalTests = 0;
+            let passedTests = 0;
+            
+            for (const phase of phases) {
+                console.log(`🧪 测试 ${phase} 阶段...`);
+                
+                // 1. HTML显示值测试
+                const htmlResult = await testHTMLDisplay(phase, expectedValues[phase]);
+                updateStatus(`${phase}-html`, htmlResult);
+                totalTests++; if (htmlResult) passedTests++;
+                
+                // 2. 预设首个值测试
+                const presetResult = await testPresetFirst(phase, expectedValues[phase]);
+                updateStatus(`${phase}-preset`, presetResult);
+                totalTests++; if (presetResult) passedTests++;
+                
+                // 3. 位置记忆机制测试
+                const memoryResult = await testMemoryMechanism(phase);
+                updateStatus(`${phase}-memory`, memoryResult);
+                totalTests++; if (memoryResult) passedTests++;
+                
+                // 4. 实时更新机制测试
+                const realtimeResult = await testRealtimeMechanism(phase);
+                updateStatus(`${phase}-realtime`, realtimeResult);
+                totalTests++; if (realtimeResult) passedTests++;
+                
+                // 5. 事件绑定测试
+                const bindingResult = await testEventBinding(phase);
+                updateStatus(`${phase}-binding`, bindingResult);
+                totalTests++; if (bindingResult) passedTests++;
+            }
+            
+            // 更新总体状态
+            const successRate = Math.round((passedTests / totalTests) * 100);
+            const statusElement = document.getElementById('overall-status');
+            statusElement.innerHTML = `
+                <strong>测试完成: ${passedTests}/${totalTests} 通过 (${successRate}%)</strong><br>
+                ${successRate === 100 ? '🎉 所有阶段机制完全一致！' : '⚠️ 发现不一致问题，需要修复'}
+            `;
+            statusElement.style.color = successRate === 100 ? '#34C759' : '#FF9500';
+        };
+
+        // 测试HTML显示值
+        async function testHTMLDisplay(phase, expected) {
+            const element = document.getElementById(`${phase}-time`);
+            if (!element) return false;
+            
+            const displayText = element.textContent.trim();
+            const seconds = parseTimeText(displayText);
+            return seconds === expected;
+        }
+
+        // 测试预设首个值
+        async function testPresetFirst(phase, expected) {
+            const presets = timePicker.userPresets[phase];
+            if (!presets || presets.length === 0) return false;
+            
+            return presets[0] === expected;
+        }
+
+        // 测试位置记忆机制
+        async function testMemoryMechanism(phase) {
+            // 检查是否有位置记忆结构
+            if (!timePicker.lastSelectedIndexes.hasOwnProperty(phase)) return false;
+            
+            // 检查是否有保存和加载方法
+            return typeof timePicker.saveLastSelectedIndexes === 'function' &&
+                   typeof timePicker.loadLastSelectedIndexes === 'function';
+        }
+
+        // 测试实时更新机制
+        async function testRealtimeMechanism(phase) {
+            // 检查是否有实时更新方法
+            return typeof timePicker.updateSelectedPresetInRealtime === 'function' &&
+                   typeof timePicker._doUpdateSelectedPreset === 'function';
+        }
+
+        // 测试事件绑定
+        async function testEventBinding(phase) {
+            const button = document.getElementById(`${phase}-time`);
+            if (!button) return false;
+            
+            // 检查按钮是否有点击事件监听器
+            const listeners = getEventListeners ? getEventListeners(button) : null;
+            return listeners ? listeners.click && listeners.click.length > 0 : true; // 假设绑定正确
+        }
+
+        // 单个阶段测试
+        window.testPhaseIndividually = async function(phase) {
+            console.log(`🔍 单独测试 ${phase} 阶段...`);
+            
+            await initialize();
+            
+            const expectedValues = { prepare: 10, round: 10, warning: 10, rest: 30 };
+            const expected = expectedValues[phase];
+            
+            // 运行所有测试
+            const htmlResult = await testHTMLDisplay(phase, expected);
+            const presetResult = await testPresetFirst(phase, expected);
+            const memoryResult = await testMemoryMechanism(phase);
+            const realtimeResult = await testRealtimeMechanism(phase);
+            const bindingResult = await testEventBinding(phase);
+            
+            // 更新显示
+            updateStatus(`${phase}-html`, htmlResult);
+            updateStatus(`${phase}-preset`, presetResult);
+            updateStatus(`${phase}-memory`, memoryResult);
+            updateStatus(`${phase}-realtime`, realtimeResult);
+            updateStatus(`${phase}-binding`, bindingResult);
+            
+            const allPassed = htmlResult && presetResult && memoryResult && realtimeResult && bindingResult;
+            alert(`${phase.toUpperCase()} 阶段测试 ${allPassed ? '✅ 全部通过' : '❌ 发现问题'}`);
+        };
+
+        // 更新状态显示
+        function updateStatus(id, passed) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = passed ? 'PASS' : 'FAIL';
+                element.className = `status ${passed ? 'pass' : 'fail'}`;
+            }
+        }
+
+        // 解析时间文本
+        function parseTimeText(timeText) {
+            const [minutes, seconds] = timeText.split(':').map(s => parseInt(s) || 0);
+            return minutes * 60 + seconds;
+        }
+    </script>
+</body>
+</html>

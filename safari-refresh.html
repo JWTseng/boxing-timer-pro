@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Safari强制刷新助手</title>
+</head>
+<body>
+    <h1>Safari缓存清除助手</h1>
+    <p>点击下面的按钮强制刷新Boxing Timer应用:</p>
+    <button onclick="forceRefresh()" style="padding: 20px; font-size: 18px;">
+        强制刷新Boxing Timer
+    </button>
+    
+    <script>
+    function forceRefresh() {
+        // 打开新窗口并强制刷新
+        const timestamp = Date.now();
+        const url = `http://localhost:8080/?nocache=${timestamp}&safari-refresh=true`;
+        window.open(url, '_blank');
+        
+        // 显示操作指引
+        document.body.innerHTML += `
+            <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border: 1px solid #ccc;">
+                <h3>✅ 操作完成！</h3>
+                <p>我已经打开了新的Boxing Timer页面，带有缓存清除参数。</p>
+                <p><strong>如果还是显示旧版本，请在Safari中:</strong></p>
+                <ol>
+                    <li>按 <kbd>⌘ + ⌥ + R</kbd> (强制刷新)</li>
+                    <li>或者按 <kbd>⌘ + R</kbd> 多次刷新</li>
+                    <li>或者在开发者菜单中选择"清空缓存"</li>
+                </ol>
+            </div>
+        `;
+    }
+    </script>
+</body>
+</html>

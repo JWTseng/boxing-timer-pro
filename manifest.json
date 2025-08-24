@@ -1,0 +1,26 @@
+{
+  "name": "Boxing Timer Pro",
+  "short_name": "BoxingTimer",
+  "description": "专业拳击/搏击训练计时器 - 支持回合计时、休息提醒、多样化提示音效",
+  "theme_color": "#FF9500",
+  "background_color": "#1C1C1E",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "start_url": "/",
+  "categories": ["sports", "fitness", "productivity"],
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}

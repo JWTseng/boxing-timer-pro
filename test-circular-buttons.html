@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESTAI - 圆形按钮验收测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1C1C1E;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(72, 72, 74, 0.3);
+            border-radius: 12px;
+        }
+        
+        .test-buttons {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .measurement-overlay {
+            position: relative;
+        }
+        
+        .measurement-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #00FF00;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .measurement-overlay::after {
+            content: attr(data-size);
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #00FF00;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .test-pass {
+            background: rgba(48, 209, 88, 0.2);
+            border: 2px solid #30D158;
+            color: #30D158;
+        }
+        
+        .test-fail {
+            background: rgba(255, 59, 48, 0.2);
+            border: 2px solid #FF3B30;
+            color: #FF3B30;
+        }
+        
+        .debug-info {
+            background: rgba(255, 149, 0, 0.2);
+            border: 2px solid #FF9500;
+            color: #FF9500;
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🤖 TESTAI - 圆形按钮形状验收</h1>
+        
+        <div class="test-section">
+            <h2>📐 测试按钮 (带绿色圆形参考线)</h2>
+            <div class="test-buttons">
+                <div class="measurement-overlay" data-size="60×60px">
+                    <button id="test-pause-btn" style="
+                        width: 60px !important;
+                        height: 60px !important;
+                        min-width: 60px !important;
+                        min-height: 60px !important;
+                        max-width: 60px !important;
+                        max-height: 60px !important;
+                        border-radius: 50% !important;
+                        border: none !important;
+                        background: rgba(72, 72, 74, 0.85) !important;
+                        color: white !important;
+                        font-size: 18px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        cursor: pointer !important;
+                        font-weight: 600 !important;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+                    ">||</button>
+                </div>
+                
+                <div class="measurement-overlay" data-size="60×60px">
+                    <button id="test-stop-btn" style="
+                        width: 60px !important;
+                        height: 60px !important;
+                        min-width: 60px !important;
+                        min-height: 60px !important;
+                        max-width: 60px !important;
+                        max-height: 60px !important;
+                        border-radius: 50% !important;
+                        border: none !important;
+                        background: rgba(255, 59, 48, 0.85) !important;
+                        color: white !important;
+                        font-size: 18px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        cursor: pointer !important;
+                        font-weight: 600 !important;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+                    ">■</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 自动化形状检测</h2>
+            <div id="test-results"></div>
+            <button onclick="runCircularTest()" style="
+                background: #007AFF;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                margin: 20px 0;
+            ">🚀 运行 TESTAI 验收测试</button>
+            
+            <div id="debug-info" class="debug-info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function runCircularTest() {
+            const resultsContainer = document.getElementById('test-results');
+            const debugContainer = document.getElementById('debug-info');
+            resultsContainer.innerHTML = '';
+            debugContainer.style.display = 'block';
+            
+            const buttons = [
+                { id: 'test-pause-btn', name: '暂停按钮' },
+                { id: 'test-stop-btn', name: '停止按钮' }
+            ];
+            
+            let allTestsPassed = true;
+            let debugInfo = 'TESTAI 验收详细报告:\\n';
+            debugInfo += '=' .repeat(50) + '\\n';
+            
+            buttons.forEach(buttonInfo => {
+                const button = document.getElementById(buttonInfo.id);
+                const rect = button.getBoundingClientRect();
+                const computedStyle = window.getComputedStyle(button);
+                
+                const width = rect.width;
+                const height = rect.height;
+                const borderRadius = computedStyle.borderRadius;
+                
+                debugInfo += `\\n📊 ${buttonInfo.name} 测量数据:\\n`;
+                debugInfo += `   宽度: ${width}px\\n`;
+                debugInfo += `   高度: ${height}px\\n`;
+                debugInfo += `   圆角: ${borderRadius}\\n`;
+                debugInfo += `   宽高比: ${(width/height).toFixed(4)}\\n`;
+                
+                // 测试1: 宽度等于高度（正方形基础）
+                const isSquare = Math.abs(width - height) < 0.1;
+                
+                // 测试2: 边框圆角为50%
+                const isCircular = borderRadius === '50%' || borderRadius === `${width/2}px`;
+                
+                // 测试3: 尺寸符合要求
+                const isCorrectSize = width >= 58 && width <= 62 && height >= 58 && height <= 62;
+                
+                debugInfo += `   ✓ 正方形检查: ${isSquare ? 'PASS' : 'FAIL'}\\n`;
+                debugInfo += `   ✓ 圆角检查: ${isCircular ? 'PASS' : 'FAIL'}\\n`;
+                debugInfo += `   ✓ 尺寸检查: ${isCorrectSize ? 'PASS' : 'FAIL'}\\n`;
+                
+                const testPassed = isSquare && isCircular && isCorrectSize;
+                allTestsPassed = allTestsPassed && testPassed;
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = testPassed ? 'test-result test-pass' : 'test-result test-fail';
+                resultDiv.innerHTML = `
+                    ${testPassed ? '✅' : '❌'} ${buttonInfo.name} 
+                    ${testPassed ? 'PASS' : 'FAIL'} 
+                    (${width.toFixed(1)}×${height.toFixed(1)}px, ${borderRadius})
+                `;
+                resultsContainer.appendChild(resultDiv);
+            });
+            
+            // 总体结果
+            const overallDiv = document.createElement('div');
+            overallDiv.className = allTestsPassed ? 'test-result test-pass' : 'test-result test-fail';
+            overallDiv.innerHTML = `
+                <strong>🤖 TESTAI 总体验收结果: ${allTestsPassed ? '✅ 通过' : '❌ 未通过'}</strong><br>
+                ${allTestsPassed ? 
+                    '所有按钮都是完美的正圆形，符合设计要求。' : 
+                    '检测到形状问题，需要修复CSS样式。'
+                }
+            `;
+            resultsContainer.appendChild(overallDiv);
+            
+            debugInfo += '\\n' + '='.repeat(50);
+            debugInfo += `\\n🎯 最终结果: ${allTestsPassed ? 'TESTAI验收通过✅' : 'TESTAI验收失败❌'}`;
+            debugContainer.textContent = debugInfo;
+            
+            return allTestsPassed;
+        }
+        
+        // 页面加载后自动运行测试
+        window.addEventListener('load', () => {
+            setTimeout(runCircularTest, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play/Pause 按钮测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #E8D85C;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .test-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 30px auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .pause-btn, .play-btn {
+            position: absolute;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .pause-btn:hover, .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .pause-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 20px;
+            background: #333;
+            border-radius: 2px;
+        }
+
+        .pause-bar-left {
+            left: 20px;
+        }
+
+        .pause-bar-right {
+            right: 20px;
+        }
+
+        .play-triangle {
+            position: absolute;
+            top: 50%;
+            left: 52%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid #333;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .test-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        .test-button:hover {
+            background: #0056CC;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 style="text-align: center; margin-bottom: 30px;">Play/Pause 按钮切换测试</h2>
+        
+        <div class="status" id="status">状态: 暂停按钮显示中</div>
+        
+        <div class="button-container">
+            <!-- Pause状态按钮 -->
+            <button id="pause-btn" class="pause-btn">
+                <div class="pause-bar pause-bar-left"></div>
+                <div class="pause-bar pause-bar-right"></div>
+            </button>
+            
+            <!-- Play状态按钮 -->
+            <button id="play-btn" class="play-btn hidden">
+                <div class="play-triangle"></div>
+            </button>
+        </div>
+        
+        <button class="test-button" onclick="toggleButtons()">点击切换按钮状态</button>
+        <button class="test-button" onclick="checkCurrentState()">检查当前状态</button>
+        <button class="test-button" onclick="resetToDefault()">重置为默认状态</button>
+        
+        <div id="log" style="background: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 20px; font-family: monospace; font-size: 12px; white-space: pre-wrap;"></div>
+    </div>
+
+    <script>
+        const pauseBtn = document.getElementById('pause-btn');
+        const playBtn = document.getElementById('play-btn');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+
+        let logContent = '';
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent += `[${timestamp}] ${message}\n`;
+            log.textContent = logContent;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function toggleButtons() {
+            addLog('🔄 开始切换按钮状态');
+            
+            const pauseHidden = pauseBtn.classList.contains('hidden');
+            const playHidden = playBtn.classList.contains('hidden');
+            
+            addLog(`切换前状态: pause=${pauseHidden ? '隐藏' : '显示'}, play=${playHidden ? '隐藏' : '显示'}`);
+            
+            // 使用相同的切换逻辑
+            pauseBtn.classList.toggle('hidden');
+            playBtn.classList.toggle('hidden');
+            
+            const pauseHiddenAfter = pauseBtn.classList.contains('hidden');
+            const playHiddenAfter = playBtn.classList.contains('hidden');
+            
+            addLog(`切换后状态: pause=${pauseHiddenAfter ? '隐藏' : '显示'}, play=${playHiddenAfter ? '隐藏' : '显示'}`);
+            
+            // 更新状态显示
+            if (pauseHiddenAfter) {
+                status.textContent = '状态: 播放按钮显示中';
+            } else {
+                status.textContent = '状态: 暂停按钮显示中';
+            }
+        }
+
+        function checkCurrentState() {
+            const pauseHidden = pauseBtn.classList.contains('hidden');
+            const playHidden = playBtn.classList.contains('hidden');
+            const pauseDisplay = window.getComputedStyle(pauseBtn).display;
+            const playDisplay = window.getComputedStyle(playBtn).display;
+            
+            addLog('📊 当前状态检查:');
+            addLog(`  - pause按钮: classList包含hidden=${pauseHidden}, computed display=${pauseDisplay}`);
+            addLog(`  - play按钮: classList包含hidden=${playHidden}, computed display=${playDisplay}`);
+            
+            if (pauseDisplay === 'none' && playDisplay !== 'none') {
+                addLog('✅ 状态正确: 只有play按钮可见');
+            } else if (playDisplay === 'none' && pauseDisplay !== 'none') {
+                addLog('✅ 状态正确: 只有pause按钮可见');
+            } else {
+                addLog('❌ 状态错误: 两个按钮同时可见或同时隐藏');
+            }
+        }
+
+        function resetToDefault() {
+            addLog('🔄 重置为默认状态');
+            pauseBtn.classList.remove('hidden');
+            playBtn.classList.add('hidden');
+            status.textContent = '状态: 暂停按钮显示中';
+            addLog('✅ 已重置: pause显示, play隐藏');
+        }
+
+        // 为按钮添加点击事件
+        pauseBtn.addEventListener('click', () => {
+            addLog('⏸️ 用户点击暂停按钮');
+            toggleButtons();
+        });
+
+        playBtn.addEventListener('click', () => {
+            addLog('▶️ 用户点击播放按钮');
+            toggleButtons();
+        });
+
+        // 初始状态日志
+        addLog('🚀 页面加载完成');
+        checkCurrentState();
+    </script>
+</body>
+</html>

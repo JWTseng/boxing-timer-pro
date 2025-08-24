@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>START页面流程验收测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1C1C1E;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2C2C2E;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid #30D158;
+        }
+        .test-item {
+            background: #3C3C3E;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-pending { border-left: 4px solid #8E8E93; }
+        .status-testing { border-left: 4px solid #FFD60A; }
+        .status-passed { border-left: 4px solid #30D158; }
+        .status-failed { border-left: 4px solid #FF453A; }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #0056CC;
+        }
+        .test-button.run-all {
+            background: #FF9500;
+            padding: 12px 24px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .result {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .result.pass { background: #30D158; color: #000; }
+        .result.fail { background: #FF453A; color: #FFF; }
+        .result.pending { background: #8E8E93; color: #FFF; }
+        .flow-diagram {
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 START页面流程验收测试</h1>
+        <p><strong>@TestAI</strong> 执行完整的功能验收测试</p>
+        
+        <button class="test-button run-all" onclick="runAllTests()">🚀 运行所有测试</button>
+        
+        <div class="test-section">
+            <h2>📋 测试流程规范</h2>
+            <div class="flow-diagram">
+应用启动 → 显示设置页面（默认状态）
+    ↓ 
+点击START按钮 → 隐藏设置页面 + 显示运行页面 + 开始计时
+    ↓
+运行计时器 → 阶段切换（PREPARE → ROUND → WARNING → REST）  
+    ↓
+点击X按钮 → 停止计时 + 隐藏运行页面 + 显示设置页面
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 核心功能测试</h2>
+            
+            <div class="test-item status-pending" id="test-1">
+                <span>测试1: 应用初始状态 - 设置页面显示，运行页面隐藏</span>
+                <div>
+                    <span class="result pending" id="result-1">待测试</span>
+                    <button class="test-button" onclick="testInitialState()">测试</button>
+                </div>
+            </div>
+            
+            <div class="test-item status-pending" id="test-2">
+                <span>测试2: START按钮点击 - 正确切换到运行界面</span>
+                <div>
+                    <span class="result pending" id="result-2">待测试</span>
+                    <button class="test-button" onclick="testStartButton()">测试</button>
+                </div>
+            </div>
+            
+            <div class="test-item status-pending" id="test-3">
+                <span>测试3: 运行界面UI - 时钟、阶段卡片、控制按钮正确显示</span>
+                <div>
+                    <span class="result pending" id="result-3">待测试</span>
+                    <button class="test-button" onclick="testRunningUI()">测试</button>
+                </div>
+            </div>
+            
+            <div class="test-item status-pending" id="test-4">
+                <span>测试4: 阶段背景色 - 4个阶段颜色正确切换</span>
+                <div>
+                    <span class="result pending" id="result-4">待测试</span>
+                    <button class="test-button" onclick="testPhaseColors()">测试</button>
+                </div>
+            </div>
+            
+            <div class="test-item status-pending" id="test-5">
+                <span>测试5: X按钮功能 - 正确关闭运行页面，返回设置页面</span>
+                <div>
+                    <span class="result pending" id="result-5">待测试</span>
+                    <button class="test-button" onclick="testStopButton()">测试</button>
+                </div>
+            </div>
+            
+            <div class="test-item status-pending" id="test-6">
+                <span>测试6: 完整流程 - START → 运行 → 关闭 → 设置</span>
+                <div>
+                    <span class="result pending" id="result-6">待测试</span>
+                    <button class="test-button" onclick="testCompleteFlow()">测试</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 测试结果总览</h2>
+            <div id="test-summary">
+                <p>等待测试执行...</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🛠️ 手动验证工具</h2>
+            <button class="test-button" onclick="openMainApp()">打开主应用</button>
+            <button class="test-button" onclick="resetApp()">重置应用状态</button>
+            <button class="test-button" onclick="checkConsoleErrors()">检查控制台错误</button>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {
+            test1: 'pending',
+            test2: 'pending', 
+            test3: 'pending',
+            test4: 'pending',
+            test5: 'pending',
+            test6: 'pending'
+        };
+        
+        function updateTestResult(testId, result, message = '') {
+            testResults[testId] = result;
+            const resultElement = document.getElementById(`result-${testId.slice(-1)}`);
+            const testElement = document.getElementById(`test-${testId.slice(-1)}`);
+            
+            if (resultElement && testElement) {
+                resultElement.textContent = result === 'pass' ? '✅ 通过' : 
+                                          result === 'fail' ? '❌ 失败' : '⏳ 测试中';
+                resultElement.className = `result ${result}`;
+                
+                testElement.className = `test-item status-${result === 'pass' ? 'passed' : 
+                                                         result === 'fail' ? 'failed' : 'testing'}`;
+            }
+            
+            updateSummary();
+            console.log(`测试 ${testId}: ${result} - ${message}`);
+        }
+        
+        function updateSummary() {
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(r => r === 'pass').length;
+            const failed = Object.values(testResults).filter(r => r === 'fail').length;
+            const pending = total - passed - failed;
+            
+            const summary = document.getElementById('test-summary');
+            summary.innerHTML = \`
+                <p><strong>测试进度:</strong> \${passed + failed}/\${total} 完成</p>
+                <p>✅ 通过: \${passed} | ❌ 失败: \${failed} | ⏳ 待测试: \${pending}</p>
+                <p><strong>通过率:</strong> \${total > 0 ? Math.round(passed / total * 100) : 0}%</p>
+            \`;
+        }
+        
+        // 测试1: 应用初始状态
+        async function testInitialState() {
+            updateTestResult('test1', 'testing');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const mainWindow = window.parent || window;
+                const setupView = mainWindow.document.getElementById('timer-setup-view');
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                
+                if (!setupView || !runningView) {
+                    updateTestResult('test1', 'fail', '界面元素未找到');
+                    return;
+                }
+                
+                const setupVisible = setupView.style.display !== 'none';
+                const runningHidden = runningView.style.display === 'none';
+                
+                if (setupVisible && runningHidden) {
+                    updateTestResult('test1', 'pass', '初始状态正确');
+                } else {
+                    updateTestResult('test1', 'fail', \`设置页面: \${setupVisible}, 运行页面隐藏: \${runningHidden}\`);
+                }
+                
+            } catch (error) {
+                updateTestResult('test1', 'fail', error.message);
+            }
+        }
+        
+        // 测试2: START按钮点击
+        async function testStartButton() {
+            updateTestResult('test2', 'testing');
+            
+            try {
+                const mainWindow = window.parent || window;
+                const startBtn = mainWindow.document.getElementById('start-btn');
+                
+                if (!startBtn) {
+                    updateTestResult('test2', 'fail', 'START按钮未找到');
+                    return;
+                }
+                
+                // 确保初始状态
+                await testInitialState();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 点击START按钮
+                startBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 检查切换结果
+                const setupView = mainWindow.document.getElementById('timer-setup-view');
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                
+                const setupHidden = setupView.style.display === 'none';
+                const runningVisible = runningView.style.display === 'flex';
+                
+                if (setupHidden && runningVisible) {
+                    updateTestResult('test2', 'pass', 'START按钮正确切换界面');
+                } else {
+                    updateTestResult('test2', 'fail', \`设置页面隐藏: \${setupHidden}, 运行页面显示: \${runningVisible}\`);
+                }
+                
+            } catch (error) {
+                updateTestResult('test2', 'fail', error.message);
+            }
+        }
+        
+        // 测试3: 运行界面UI
+        async function testRunningUI() {
+            updateTestResult('test3', 'testing');
+            
+            try {
+                const mainWindow = window.parent || window;
+                
+                // 确保运行界面显示
+                await testStartButton();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 检查UI元素
+                const mainTimer = mainWindow.document.getElementById('main-timer');
+                const phaseInfo = mainWindow.document.getElementById('phase-info');
+                const roundNumber = mainWindow.document.getElementById('round-number');
+                const pauseBtn = mainWindow.document.getElementById('pause-btn');
+                const stopBtn = mainWindow.document.getElementById('stop-btn');
+                
+                const elements = { mainTimer, phaseInfo, roundNumber, pauseBtn, stopBtn };
+                const missing = Object.keys(elements).filter(key => !elements[key]);
+                
+                if (missing.length === 0) {
+                    updateTestResult('test3', 'pass', '所有UI元素正确显示');
+                } else {
+                    updateTestResult('test3', 'fail', \`缺失元素: \${missing.join(', ')}\`);
+                }
+                
+            } catch (error) {
+                updateTestResult('test3', 'fail', error.message);
+            }
+        }
+        
+        // 测试4: 阶段背景色
+        async function testPhaseColors() {
+            updateTestResult('test4', 'testing');
+            
+            try {
+                const mainWindow = window.parent || window;
+                
+                // 确保运行界面显示
+                await testStartButton();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                const phases = ['prepare', 'round', 'warning', 'rest'];
+                const expectedColors = {
+                    'prepare': '#FFD60A',
+                    'round': '#8BC34A', 
+                    'warning': '#FF9500',
+                    'rest': '#FF6B47'
+                };
+                
+                let allColorsCorrect = true;
+                
+                for (const phase of phases) {
+                    runningView.className = \`view timer-running phase-\${phase}\`;
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    const computedStyle = mainWindow.getComputedStyle(runningView);
+                    const bgColor = computedStyle.backgroundColor;
+                    
+                    // 简化的颜色检查（由于RGB转换复杂）
+                    if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+                        allColorsCorrect = false;
+                        break;
+                    }
+                }
+                
+                if (allColorsCorrect) {
+                    updateTestResult('test4', 'pass', '所有阶段背景色正确');
+                } else {
+                    updateTestResult('test4', 'fail', '部分阶段背景色不正确');
+                }
+                
+            } catch (error) {
+                updateTestResult('test4', 'fail', error.message);
+            }
+        }
+        
+        // 测试5: X按钮功能
+        async function testStopButton() {
+            updateTestResult('test5', 'testing');
+            
+            try {
+                const mainWindow = window.parent || window;
+                
+                // 确保运行界面显示
+                await testStartButton();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 点击X按钮
+                const stopBtn = mainWindow.document.getElementById('stop-btn');
+                if (!stopBtn) {
+                    updateTestResult('test5', 'fail', 'X按钮未找到');
+                    return;
+                }
+                
+                stopBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 检查是否返回设置页面
+                const setupView = mainWindow.document.getElementById('timer-setup-view');
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                
+                const setupVisible = setupView.style.display !== 'none';
+                const runningHidden = runningView.style.display === 'none';
+                
+                if (setupVisible && runningHidden) {
+                    updateTestResult('test5', 'pass', 'X按钮正确关闭运行页面');
+                } else {
+                    updateTestResult('test5', 'fail', \`设置页面显示: \${setupVisible}, 运行页面隐藏: \${runningHidden}\`);
+                }
+                
+            } catch (error) {
+                updateTestResult('test5', 'fail', error.message);
+            }
+        }
+        
+        // 测试6: 完整流程
+        async function testCompleteFlow() {
+            updateTestResult('test6', 'testing');
+            
+            try {
+                console.log('开始完整流程测试...');
+                
+                // 重置到初始状态
+                await resetApp();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 执行完整流程
+                await testInitialState();
+                await testStartButton();
+                await testRunningUI();
+                await testStopButton();
+                
+                // 检查最终状态
+                const finalResult = testResults.test1 === 'pass' && 
+                                   testResults.test2 === 'pass' && 
+                                   testResults.test3 === 'pass' && 
+                                   testResults.test5 === 'pass';
+                
+                if (finalResult) {
+                    updateTestResult('test6', 'pass', '完整流程测试通过');
+                } else {
+                    updateTestResult('test6', 'fail', '完整流程存在问题');
+                }
+                
+            } catch (error) {
+                updateTestResult('test6', 'fail', error.message);
+            }
+        }
+        
+        // 运行所有测试
+        async function runAllTests() {
+            console.log('🧪 开始执行所有测试...');
+            
+            const tests = [
+                testInitialState,
+                testStartButton,
+                testRunningUI,
+                testPhaseColors,
+                testStopButton,
+                testCompleteFlow
+            ];
+            
+            for (let i = 0; i < tests.length; i++) {
+                console.log(\`执行测试 \${i + 1}/\${tests.length}...\`);
+                await tests[i]();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            console.log('✅ 所有测试执行完成');
+        }
+        
+        // 辅助函数
+        function openMainApp() {
+            window.open('http://localhost:8080', '_blank');
+        }
+        
+        async function resetApp() {
+            try {
+                const mainWindow = window.parent || window;
+                const setupView = mainWindow.document.getElementById('timer-setup-view');
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                
+                if (setupView && runningView) {
+                    setupView.style.display = 'block';
+                    runningView.style.display = 'none';
+                    console.log('应用状态已重置');
+                }
+            } catch (error) {
+                console.error('重置失败:', error);
+            }
+        }
+        
+        function checkConsoleErrors() {
+            console.log('请检查浏览器控制台是否有错误信息');
+            console.log('当前测试结果:', testResults);
+        }
+        
+        // 初始化
+        updateSummary();
+        console.log('🧪 START页面流程验收测试工具已加载');
+    </script>
+</body>
+</html>

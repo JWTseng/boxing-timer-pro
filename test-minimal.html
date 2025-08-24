@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小化启动测试</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white; 
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+        }
+        .success { background: #2d5016; }
+        .error { background: #5d1a1a; }
+        .info { background: #1a3a5d; }
+        .log { 
+            background: #000; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Boxing Timer 最小化启动测试</h1>
+    <div id="status">正在测试...</div>
+    <div id="log" class="log">开始测试...\n</div>
+
+    <script type="module">
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        async function runTest() {
+            try {
+                log('🔍 开始最小化启动测试');
+                
+                // 测试1: 简化健康检查器
+                log('📦 测试简化健康检查器...');
+                const { SimpleHealthChecker } = await import('/src/utils/SimpleHealthChecker.js');
+                log('✅ SimpleHealthChecker 导入成功');
+                
+                const checker = new SimpleHealthChecker();
+                const results = await checker.runBasicCheck();
+                
+                if (results.overall) {
+                    log('✅ 健康检查通过');
+                } else {
+                    log(`⚠️ 健康检查警告: ${results.errors.length} 个错误`);
+                }
+                
+                // 测试2: ViewManager
+                log('📦 测试ViewManager...');
+                const { ViewManager } = await import('/src/components/ViewManager.js');
+                log('✅ ViewManager 导入成功');
+                
+                // 测试3: TimePicker  
+                log('📦 测试TimePicker...');
+                const { TimePicker } = await import('/src/components/TimePicker.js');
+                log('✅ TimePicker 导入成功');
+                
+                // 测试4: 主应用类（不实际初始化）
+                log('📦 测试主应用类...');
+                const mainModule = await import('/src/main.js');
+                log('✅ 主应用模块导入成功');
+                
+                // 如果到这里都没有错误，说明基础导入都正常
+                log('🎉 所有基础模块导入测试通过！');
+                updateStatus('✅ 启动测试通过 - 应用可以正常启动', 'success');
+                
+            } catch (error) {
+                log(`❌ 启动测试失败: ${error.message}`);
+                log(`❌ 错误堆栈: ${error.stack}`);
+                updateStatus(`❌ 启动失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 捕获全局错误
+        window.addEventListener('error', (event) => {
+            log(`💥 全局错误: ${event.error?.message || event.message}`);
+            updateStatus(`💥 全局错误: ${event.error?.message || event.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            log(`💥 未处理Promise: ${event.reason}`);
+            updateStatus(`💥 未处理Promise: ${event.reason}`, 'error');
+        });
+        
+        // 页面加载完成后运行测试
+        runTest();
+    </script>
+</body>
+</html>

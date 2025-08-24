@@ -11,6 +11,29 @@ export class TimePicker {
         // DOM元素引用
         this.elements = {};
         
+        // 用户自定义预设时间存储 - @UIAI + @CMAI: 记忆用户偏好
+        this.userPresets = {
+            prepare: [10, 20, 60],  // 默认值
+            round: [10, 30, 60],
+            warning: [10, 5, 15],   // @UIAI修正：首个值与HTML显示一致
+            rest: [30, 60, 90]
+        };
+        
+        // 当前选中的预设索引 - @UIAI: 始终保持一个选中状态
+        this.selectedPresetIndex = 0;
+        
+        // 各阶段最后选中的预设索引 - @UIAI: 记忆用户选择
+        this.lastSelectedIndexes = {
+            prepare: 0,
+            round: 0,
+            warning: 0,
+            rest: 0
+        };
+        
+        // 加载保存的用户预设和选中索引
+        this.loadUserPresets();
+        this.loadLastSelectedIndexes();
+        
         // 滚轮配置 - 按照@UIAI设计规范优化
         this.wheelConfig = {
             itemHeight: 44, // 增加到44px符合触控标准
@@ -37,8 +60,8 @@ export class TimePicker {
         this.setupEventListeners();
         this.generatePickerItems();
         
-        // 添加debug按钮到页面，方便测试
-        this.addDebugButton();
+        // 移除调试按钮 - @UIAI: 保持界面整洁
+        // this.addDebugButton();
         
         console.log('✅ TimePicker 初始化完成');
     }
@@ -84,10 +107,16 @@ export class TimePicker {
         this.elements.modal = document.getElementById('time-adjustment-modal');
         this.elements.phaseTitle = document.getElementById('phase-title');
         this.elements.currentTimeDisplay = document.getElementById('current-time-display');
-        this.elements.phaseCard = this.elements.modal.querySelector('.phase-time-card');
         
-        // 预设按钮
-        this.elements.presetButtons = this.elements.modal.querySelectorAll('.preset-time-btn');
+        // CMAI修复：添加null检查，避免运行时错误
+        if (this.elements.modal) {
+            this.elements.phaseCard = this.elements.modal.querySelector('.phase-time-card');
+            this.elements.presetButtons = this.elements.modal.querySelectorAll('.preset-time-btn');
+        } else {
+            console.warn('⚠️ TimePicker模态框未找到，某些功能可能无法使用');
+            this.elements.phaseCard = null;
+            this.elements.presetButtons = null;
+        }
         
         // 滚轮选择器
         this.elements.minutesItems = document.getElementById('minutes-items');
@@ -105,12 +134,16 @@ export class TimePicker {
      * 设置事件监听器
      */
     setupEventListeners() {
-        // 预设按钮点击
-        this.elements.presetButtons.forEach(btn => {
+        // 预设按钮点击 - @UIAI + @CMAI: 记录选中索引
+        this.elements.presetButtons.forEach((btn, index) => {
             btn.addEventListener('click', (e) => {
                 const timeSeconds = parseInt(e.target.getAttribute('data-time'));
                 this.setTimeFromSeconds(timeSeconds);
                 this.updatePresetSelection(btn);
+                this.selectedPresetIndex = index; // 记录选中的索引
+                this.lastSelectedIndexes[this.currentPhase] = index; // 记忆该阶段的选择
+                this.saveLastSelectedIndexes(); // 保存到localStorage
+                console.log(`🎯 选择预设按钮 ${index}: ${timeSeconds}秒`);
             });
         });
         
@@ -134,6 +167,9 @@ export class TimePicker {
             // 触摸事件支持
             this.setupTouchEvents(this.elements.secondsWheel, 'seconds');
         }
+        
+        // 主界面的阶段时间按钮 - 绑定PREPARE/ROUND/WARNING/REST
+        this.setupPhaseTimeButtons();
         
         // 确认按钮
         if (this.elements.doneBtn) {
@@ -245,7 +281,7 @@ export class TimePicker {
     }
     
     /**
-     * 显示时间选择器 - 优化版本，确保DOM渲染完成
+     * 显示时间选择器 - @UIAI: 恢复用户上次选择的预设位置
      */
     show(phase, currentTime) {
         this.currentPhase = phase;
@@ -260,6 +296,17 @@ export class TimePicker {
         this.updatePhaseDisplay(phase);
         this.updateTimeDisplay();
         this.updatePresetButtons();
+        
+        // @UIAI + @CMAI: 智能选择预设位置
+        const totalSeconds = this.selectedTime.minutes * 60 + this.selectedTime.seconds;
+        const bestIndex = this.findBestPresetIndex(phase, totalSeconds);
+        const lastIndex = this.lastSelectedIndexes[phase] || 0;
+        
+        // 优先使用最接近时间的预设，如果时间完全匹配则使用记忆的位置
+        const targetIndex = (Math.abs(this.userPresets[phase][bestIndex] - totalSeconds) <= 2) ? bestIndex : lastIndex;
+        
+        this.selectPresetByIndex(targetIndex);
+        console.log(`📍 智能选择预设: 当前${totalSeconds}秒, 最接近索引${bestIndex}, 记忆索引${lastIndex}, 最终选择${targetIndex}`);
         
         // 显示模态框
         if (this.elements.modal) {
@@ -420,17 +467,19 @@ export class TimePicker {
         this.selectedTime.minutes = minute;
         this.scrollToMinute(minute);
         this.updateTimeDisplay();
-        this.clearPresetSelection();
+        // @UIAI + @CMAI: 实时更新预设按钮而不是清除选中
+        this.updateSelectedPresetInRealtime();
     }
     
     /**
-     * 选择秒钟
+     * 选择秒钟 - @UIAI + @CMAI: 实时更新预设按钮
      */
     selectSecond(second) {
         this.selectedTime.seconds = second;
         this.scrollToSecond(second);
         this.updateTimeDisplay();
-        this.clearPresetSelection();
+        // @UIAI + @CMAI: 实时更新预设按钮而不是清除选中
+        this.updateSelectedPresetInRealtime();
     }
     
     /**
@@ -614,6 +663,32 @@ export class TimePicker {
     }
 
     /**
+     * 设置主界面阶段时间按钮事件
+     */
+    setupPhaseTimeButtons() {
+        // 绑定主界面的 PREPARE, ROUND, WARNING, REST 按钮
+        const phaseButtons = [
+            { id: 'prepare-time', phase: 'prepare' },
+            { id: 'round-time', phase: 'round' },
+            { id: 'warning-time', phase: 'warning' },
+            { id: 'rest-time', phase: 'rest' }
+        ];
+
+        phaseButtons.forEach(({ id, phase }) => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', () => {
+                    console.log(`🎯 点击 ${phase} 时间按钮，显示时间选择器`);
+                    this.show(phase, button.textContent.trim());
+                });
+                console.log(`✅ ${phase} 按钮绑定完成`);
+            } else {
+                console.warn(`⚠️ 未找到 ${phase} 按钮: #${id}`);
+            }
+        });
+    }
+
+    /**
      * 音效反馈
      */
     playFeedbackSound() {
@@ -685,17 +760,11 @@ export class TimePicker {
     }
     
     /**
-     * 更新预设按钮（根据当前相位）
+     * 更新预设按钮（根据当前相位）- @UIAI + @CMAI: 使用用户自定义预设
      */
     updatePresetButtons() {
-        const presetTimes = {
-            prepare: [10, 20, 60],
-            round: [30, 60, 180],
-            warning: [5, 10, 15],
-            rest: [30, 60, 90]
-        };
-        
-        const times = presetTimes[this.currentPhase] || presetTimes.prepare;
+        // 使用用户自定义的预设时间
+        const times = this.userPresets[this.currentPhase] || this.userPresets.prepare;
         
         this.elements.presetButtons.forEach((btn, index) => {
             if (times[index]) {
@@ -709,17 +778,21 @@ export class TimePicker {
     }
     
     /**
-     * 确认时间选择
+     * 确认时间选择 - @UIAI + @CMAI: 保存用户自定义预设
      */
     confirmTime() {
         const timeString = `${this.selectedTime.minutes.toString().padStart(2, '0')}:${this.selectedTime.seconds.toString().padStart(2, '0')}`;
+        const totalSeconds = this.selectedTime.minutes * 60 + this.selectedTime.seconds;
+        
+        // 预设已经在实时更新中保存了，这里只需要持久化
+        this.saveUserPresets();
         
         // 触发时间更新事件
         const event = new CustomEvent('timeUpdated', {
             detail: {
                 phase: this.currentPhase,
                 time: timeString,
-                seconds: this.selectedTime.minutes * 60 + this.selectedTime.seconds
+                seconds: totalSeconds
             }
         });
         
@@ -739,6 +812,234 @@ export class TimePicker {
             totalSeconds: this.selectedTime.minutes * 60 + this.selectedTime.seconds,
             formatted: `${this.selectedTime.minutes.toString().padStart(2, '0')}:${this.selectedTime.seconds.toString().padStart(2, '0')}`
         };
+    }
+    
+    /**
+     * 按索引选中预设按钮 - @UIAI: 保持始终有选中状态并记忆选择
+     */
+    selectPresetByIndex(index) {
+        if (!this.elements.presetButtons || index >= this.elements.presetButtons.length) return;
+        
+        this.selectedPresetIndex = index;
+        this.lastSelectedIndexes[this.currentPhase] = index; // 记忆选择
+        
+        this.elements.presetButtons.forEach((btn, i) => {
+            if (i === index) {
+                btn.classList.add('selected');
+                // 同时更新时间到该预设值
+                const timeSeconds = parseInt(btn.getAttribute('data-time'));
+                this.setTimeFromSeconds(timeSeconds);
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+        
+        // 保存选择到localStorage
+        this.saveLastSelectedIndexes();
+        console.log(`✅ 选中预设按钮 ${index} 并记忆`);
+    }
+    
+    /**
+     * 实时更新当前选中的预设按钮内容 - @UIAI + @CMAI: 滚轮调整时实时更新
+     */
+    updateSelectedPresetInRealtime() {
+        // 防抖处理，避免过于频繁的更新
+        if (this.updateTimer) {
+            clearTimeout(this.updateTimer);
+        }
+        
+        this.updateTimer = setTimeout(() => {
+            this._doUpdateSelectedPreset();
+        }, 100); // 100ms防抖
+    }
+    
+    /**
+     * 实际执行预设更新 - @CMAI: 内部方法
+     */
+    _doUpdateSelectedPreset() {
+        if (this.selectedPresetIndex === undefined || this.selectedPresetIndex === null) {
+            this.selectedPresetIndex = 0; // 确保始终有选中
+        }
+        
+        // 边界检查
+        if (!this.elements.presetButtons || this.elements.presetButtons.length === 0) {
+            console.warn('⚠️ 预设按钮未找到');
+            return;
+        }
+        
+        const btn = this.elements.presetButtons[this.selectedPresetIndex];
+        if (!btn) return;
+        
+        // 计算当前时间的总秒数
+        const totalSeconds = this.selectedTime.minutes * 60 + this.selectedTime.seconds;
+        
+        // 更新按钮显示文本
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        btn.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        btn.setAttribute('data-time', totalSeconds.toString());
+        
+        // 更新用户预设数组
+        this.userPresets[this.currentPhase][this.selectedPresetIndex] = totalSeconds;
+        
+        // 保持选中状态
+        btn.classList.add('selected');
+        
+        console.log(`🔄 实时更新预设按钮 ${this.selectedPresetIndex}: ${btn.textContent}`);
+    }
+    
+    /**
+     * 智能更新用户预设 - @CMAI: 替换最接近的预设值
+     */
+    updateUserPreset(phase, newTime) {
+        const presets = this.userPresets[phase];
+        if (!presets) return;
+        
+        // 查找最接近的预设值位置
+        let closestIndex = 0;
+        let minDiff = Math.abs(presets[0] - newTime);
+        
+        for (let i = 1; i < presets.length; i++) {
+            const diff = Math.abs(presets[i] - newTime);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIndex = i;
+            }
+        }
+        
+        // 只有当差异大于5秒时才更新（避免微小调整）
+        if (minDiff > 5) {
+            console.log(`📝 更新预设时间: ${phase}[${closestIndex}] = ${newTime}秒`);
+            this.userPresets[phase][closestIndex] = newTime;
+            
+            // 保存到localStorage
+            this.saveUserPresets();
+            
+            // 立即更新预设按钮显示
+            setTimeout(() => this.updatePresetButtons(), 100);
+        }
+    }
+    
+    /**
+     * 保存用户预设到localStorage
+     */
+    saveUserPresets() {
+        try {
+            localStorage.setItem('boxing-timer-user-presets', JSON.stringify(this.userPresets));
+            console.log('💾 用户预设已保存:', this.userPresets);
+        } catch (error) {
+            console.warn('⚠️ 保存用户预设失败:', error);
+        }
+    }
+    
+    /**
+     * 从localStorage加载用户预设
+     */
+    loadUserPresets() {
+        try {
+            const saved = localStorage.getItem('boxing-timer-user-presets');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                // 合并加载的预设，保留新增的相位默认值
+                Object.keys(loaded).forEach(phase => {
+                    if (this.userPresets[phase]) {
+                        this.userPresets[phase] = loaded[phase];
+                    }
+                });
+                console.log('📂 加载用户预设:', this.userPresets);
+            }
+        } catch (error) {
+            console.warn('⚠️ 加载用户预设失败:', error);
+            // 重置为默认值 - @UIAI修正：与HTML显示一致
+            this.userPresets = {
+                prepare: [10, 20, 60],
+                round: [10, 30, 60],
+                warning: [10, 5, 15],   // 首个值与HTML一致
+                rest: [30, 60, 90]
+            };
+        }
+    }
+    
+    /**
+     * @UIAI + @CMAI: 重新加载用户预设并更新界面
+     */
+    async reloadUserPresets() {
+        console.log('🔄 重新加载用户预设数据...');
+        
+        // 重新从localStorage加载预设
+        this.loadUserPresets();
+        
+        // 如果时间选择器当前打开，重新渲染预设按钮
+        if (this.isOpen && this.elements.presetButtons) {
+            this.renderPresetButtons(this.currentPhase);
+            console.log('✅ 预设按钮已重新渲染');
+        }
+        
+        console.log('✅ 用户预设数据重新加载完成');
+    }
+    
+    /**
+     * 保存最后选中的索引到localStorage - @UIAI: 记忆用户习惯
+     */
+    saveLastSelectedIndexes() {
+        try {
+            localStorage.setItem('boxing-timer-last-selected-indexes', JSON.stringify(this.lastSelectedIndexes));
+            console.log('💾 已保存最后选中的索引:', this.lastSelectedIndexes);
+        } catch (error) {
+            console.warn('⚠️ 保存选中索引失败:', error);
+        }
+    }
+    
+    /**
+     * 从localStorage加载最后选中的索引 - @UIAI: 恢复用户选择
+     */
+    loadLastSelectedIndexes() {
+        try {
+            const saved = localStorage.getItem('boxing-timer-last-selected-indexes');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                // 合并加载的索引，保留新增阶段的默认值
+                Object.keys(loaded).forEach(phase => {
+                    if (this.lastSelectedIndexes[phase] !== undefined) {
+                        // 确保索引在有效范围内
+                        const index = Math.max(0, Math.min(2, loaded[phase])); // 限制在0-2之间
+                        this.lastSelectedIndexes[phase] = index;
+                    }
+                });
+                console.log('📂 加载最后选中的索引:', this.lastSelectedIndexes);
+            }
+        } catch (error) {
+            console.warn('⚠️ 加载选中索引失败:', error);
+            // 重置为默认值
+            this.lastSelectedIndexes = {
+                prepare: 0,
+                round: 0,
+                warning: 0,
+                rest: 0
+            };
+        }
+    }
+    
+    /**
+     * 智能选择预设位置 - @UIAI + @CMAI: 根据时间找到最接近的预设
+     */
+    findBestPresetIndex(phase, totalSeconds) {
+        const presets = this.userPresets[phase];
+        if (!presets || presets.length === 0) return 0;
+        
+        let closestIndex = 0;
+        let minDiff = Math.abs(presets[0] - totalSeconds);
+        
+        for (let i = 1; i < presets.length; i++) {
+            const diff = Math.abs(presets[i] - totalSeconds);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIndex = i;
+            }
+        }
+        
+        console.log(`🎯 找到最接近 ${totalSeconds}秒 的预设: 索引${closestIndex} (${presets[closestIndex]}秒)`);
+        return closestIndex;
     }
     
     /**

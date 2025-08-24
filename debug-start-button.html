@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>START按钮调试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1C1C1E;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .debug-section {
+            background: #2C2C2E;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 16px 0;
+            border-left: 4px solid #FF9500;
+        }
+        .debug-button {
+            background: #FF9500;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+        }
+        .debug-button:hover {
+            background: #FF6B00;
+        }
+        .status-good { color: #30D158; }
+        .status-error { color: #FF453A; }
+        .status-warning { color: #FFD60A; }
+        pre {
+            background: #000;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🛠️ START按钮调试工具</h1>
+        
+        <div class="debug-section">
+            <h3>📱 应用状态检查</h3>
+            <button class="debug-button" onclick="checkAppStatus()">检查应用状态</button>
+            <button class="debug-button" onclick="checkStartButton()">检查START按钮</button>
+            <button class="debug-button" onclick="testStartClick()">模拟点击START</button>
+            <div id="app-status"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🎛️ 组件状态检查</h3>
+            <button class="debug-button" onclick="checkComponents()">检查所有组件</button>
+            <button class="debug-button" onclick="checkTimerEngine()">检查TimerEngine</button>
+            <button class="debug-button" onclick="checkStartController()">检查StartController</button>
+            <div id="component-status"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🚀 手动操作测试</h3>
+            <button class="debug-button" onclick="manualShowRunning()">手动显示运行界面</button>
+            <button class="debug-button" onclick="testPhaseSwitch()">测试阶段切换</button>
+            <button class="debug-button" onclick="clearConsole()">清理控制台</button>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📊 实时日志</h3>
+            <pre id="debug-log">等待调试操作...</pre>
+        </div>
+    </div>
+
+    <script>
+        const debugLog = document.getElementById('debug-log');
+        const appStatus = document.getElementById('app-status');
+        const componentStatus = document.getElementById('component-status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+            const line = `[${timestamp}] ${prefix} ${message}`;
+            debugLog.textContent = line + '\\n' + debugLog.textContent;
+            console.log(line);
+        }
+        
+        // 检查应用状态
+        window.checkAppStatus = function() {
+            log('开始检查应用状态...');
+            
+            try {
+                // 检查全局对象
+                const hasBoxingApp = typeof window.BoxingTimerApp !== 'undefined';
+                const hasTestFunctions = typeof window.testRunningUI !== 'undefined';
+                
+                let status = `
+                    <p><strong>全局对象:</strong></p>
+                    <p>BoxingTimerApp: <span class="${hasBoxingApp ? 'status-good' : 'status-error'}">${hasBoxingApp ? '存在' : '不存在'}</span></p>
+                    <p>测试函数: <span class="${hasTestFunctions ? 'status-good' : 'status-error'}">${hasTestFunctions ? '存在' : '不存在'}</span></p>
+                `;
+                
+                if (hasBoxingApp) {
+                    const appState = window.BoxingTimerApp.getStatus();
+                    status += `<p><strong>应用状态:</strong></p><pre>${JSON.stringify(appState, null, 2)}</pre>`;
+                }
+                
+                appStatus.innerHTML = status;
+                log('应用状态检查完成', 'success');
+                
+            } catch (error) {
+                log(`应用状态检查失败: ${error.message}`, 'error');
+                appStatus.innerHTML = `<p class="status-error">检查失败: ${error.message}</p>`;
+            }
+        };
+        
+        // 检查START按钮
+        window.checkStartButton = function() {
+            log('检查START按钮状态...');
+            
+            try {
+                // 在主窗口中查找START按钮
+                const mainWindow = window.parent || window;
+                const startBtn = mainWindow.document.getElementById('start-btn');
+                
+                let status = '';
+                if (startBtn) {
+                    const rect = startBtn.getBoundingClientRect();
+                    status = `
+                        <p class="status-good">✅ START按钮找到</p>
+                        <p>位置: x=${rect.x}, y=${rect.y}</p>
+                        <p>尺寸: ${rect.width} x ${rect.height}</p>
+                        <p>可见: ${rect.width > 0 && rect.height > 0 ? '是' : '否'}</p>
+                        <p>事件监听器: ${startBtn.onclick ? '有onclick' : '无onclick'}</p>
+                    `;
+                } else {
+                    status = '<p class="status-error">❌ 未找到START按钮</p>';
+                }
+                
+                appStatus.innerHTML = status;
+                log('START按钮检查完成', startBtn ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`START按钮检查失败: ${error.message}`, 'error');
+                appStatus.innerHTML = `<p class="status-error">检查失败: ${error.message}</p>`;
+            }
+        };
+        
+        // 模拟点击START
+        window.testStartClick = function() {
+            log('模拟点击START按钮...');
+            
+            try {
+                const mainWindow = window.parent || window;
+                const startBtn = mainWindow.document.getElementById('start-btn');
+                
+                if (startBtn) {
+                    log('找到START按钮，触发点击事件');
+                    startBtn.click();
+                    log('START按钮点击事件已触发', 'success');
+                } else {
+                    log('未找到START按钮', 'error');
+                }
+                
+            } catch (error) {
+                log(`模拟点击失败: ${error.message}`, 'error');
+            }
+        };
+        
+        // 检查组件
+        window.checkComponents = function() {
+            log('检查所有组件状态...');
+            
+            try {
+                if (window.BoxingTimerApp && window.BoxingTimerApp.components) {
+                    const components = window.BoxingTimerApp.components;
+                    let status = '<p><strong>组件状态:</strong></p>';
+                    
+                    Object.keys(components).forEach(key => {
+                        const comp = components[key];
+                        status += `<p>${key}: <span class="status-good">${comp ? '已加载' : '未加载'}</span></p>`;
+                    });
+                    
+                    componentStatus.innerHTML = status;
+                    log('组件检查完成', 'success');
+                } else {
+                    componentStatus.innerHTML = '<p class="status-error">应用或组件未初始化</p>';
+                    log('应用未初始化', 'error');
+                }
+                
+            } catch (error) {
+                log(`组件检查失败: ${error.message}`, 'error');
+            }
+        };
+        
+        // 手动显示运行界面
+        window.manualShowRunning = function() {
+            log('手动显示运行界面...');
+            
+            try {
+                const mainWindow = window.parent || window;
+                const setupView = mainWindow.document.getElementById('timer-setup-view');
+                const runningView = mainWindow.document.getElementById('timer-running-view');
+                
+                if (setupView && runningView) {
+                    setupView.style.display = 'none';
+                    runningView.style.display = 'flex';
+                    runningView.className = 'view timer-running phase-prepare';
+                    log('运行界面已手动显示', 'success');
+                } else {
+                    log(`界面元素未找到: setup=${!!setupView}, running=${!!runningView}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`手动显示失败: ${error.message}`, 'error');
+            }
+        };
+        
+        // 测试阶段切换
+        window.testPhaseSwitch = function() {
+            log('测试阶段切换...');
+            
+            const phases = ['prepare', 'round', 'warning', 'rest'];
+            let index = 0;
+            
+            const switchPhase = () => {
+                try {
+                    const mainWindow = window.parent || window;
+                    const runningView = mainWindow.document.getElementById('timer-running-view');
+                    
+                    if (runningView) {
+                        const phase = phases[index % phases.length];
+                        runningView.className = `view timer-running phase-${phase}`;
+                        
+                        const phaseInfo = mainWindow.document.getElementById('phase-info');
+                        if (phaseInfo) {
+                            phaseInfo.textContent = phase.toUpperCase();
+                        }
+                        
+                        log(`切换到 ${phase} 阶段`, 'success');
+                        index++;
+                        
+                        if (index < phases.length * 2) {
+                            setTimeout(switchPhase, 2000);
+                        }
+                    } else {
+                        log('运行界面未找到', 'error');
+                    }
+                } catch (error) {
+                    log(`阶段切换失败: ${error.message}`, 'error');
+                }
+            };
+            
+            switchPhase();
+        };
+        
+        // 清理控制台
+        window.clearConsole = function() {
+            debugLog.textContent = '控制台已清理...';
+            console.clear();
+        };
+        
+        // 页面加载完成
+        log('START按钮调试工具已加载', 'success');
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单启动测试</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white; 
+            line-height: 1.6;
+        }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: 1px solid #333;
+        }
+        .success { background: rgba(255, 149, 0, 0.1); color: #FF9500; }
+        .error { background: rgba(255, 59, 48, 0.1); color: #FF3B30; }
+        .info { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
+        .warning { background: rgba(255, 149, 0, 0.1); color: #FF9500; }
+        .log { 
+            background: #000; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+        button {
+            background: #FF9500;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover { background: #FF6B00; }
+        button:disabled { 
+            background: #555; 
+            cursor: not-allowed; 
+        }
+        h1 { color: #4CAF50; }
+        h2 { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🛠️ Boxing Timer 简单启动测试</h1>
+    <p><strong>CMAI诊断工具</strong> - 确定启动问题的根本原因</p>
+    
+    <div id="status" class="status info">
+        <h2>📊 当前状态</h2>
+        <p>等待测试开始...</p>
+    </div>
+    
+    <div>
+        <button onclick="testBasics()">🧪 基础环境测试</button>
+        <button onclick="testModules()">📦 模块导入测试</button>
+        <button onclick="testAll()">🚀 完整测试</button>
+        <button onclick="clearLog()">🧹 清理</button>
+    </div>
+    
+    <div id="log" class="log">
+🔍 Boxing Timer 简单启动测试
+准备检查应用启动问题...
+
+请点击上方按钮开始测试。
+    </div>
+
+    <script>
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        
+        function updateStatus(message, type = 'info', details = '') {
+            const colors = {
+                success: '✅',
+                error: '❌', 
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            status.className = `status ${type}`;
+            status.innerHTML = `
+                <h2>${colors[type]} ${message}</h2>
+                ${details ? `<p>${details}</p>` : ''}
+            `;
+        }
+        
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `\n[${timestamp}] ${message}`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        // 基础环境测试
+        window.testBasics = function() {
+            addLog('🔍 开始基础环境测试...');
+            updateStatus('测试中...', 'info');
+            
+            try {
+                // 测试JavaScript基础功能
+                const tests = [
+                    { name: '浏览器环境', test: () => typeof window !== 'undefined' },
+                    { name: 'ES6支持', test: () => {
+                        try {
+                            const arrow = () => true;
+                            const {a} = {a: 1};
+                            return arrow() && a === 1;
+                        } catch { return false; }
+                    }},
+                    { name: 'Promise支持', test: () => typeof Promise !== 'undefined' },
+                    { name: 'fetch支持', test: () => typeof fetch !== 'undefined' },
+                    { name: 'localStorage', test: () => typeof localStorage !== 'undefined' },
+                    { name: '模块加载支持', test: () => typeof document.createElement === 'function' }
+                ];
+                
+                let passed = 0;
+                tests.forEach(test => {
+                    try {
+                        const result = test.test();
+                        if (result) {
+                            addLog(`✅ ${test.name}: 支持`);
+                            passed++;
+                        } else {
+                            addLog(`❌ ${test.name}: 不支持`);
+                        }
+                    } catch (error) {
+                        addLog(`❌ ${test.name}: 测试失败 - ${error.message}`);
+                    }
+                });
+                
+                if (passed === tests.length) {
+                    addLog(`🎉 基础环境测试完全通过！(${passed}/${tests.length})`);
+                    updateStatus('基础环境正常', 'success', `所有 ${tests.length} 项基础检查都通过了`);
+                } else {
+                    addLog(`⚠️ 基础环境测试部分通过 (${passed}/${tests.length})`);
+                    updateStatus('基础环境警告', 'warning', `${passed}/${tests.length} 项检查通过`);
+                }
+                
+            } catch (error) {
+                addLog(`💥 基础环境测试失败: ${error.message}`);
+                updateStatus('基础环境异常', 'error', error.message);
+            }
+        };
+        
+        // 模块导入测试
+        window.testModules = async function() {
+            addLog('📦 开始模块导入测试...');
+            updateStatus('测试模块导入...', 'info');
+            
+            const modules = [
+                { name: 'SimpleHealthChecker', path: '/src/utils/SimpleHealthChecker.js' },
+                { name: 'ViewManager', path: '/src/components/ViewManager.js' },
+                { name: 'TimePicker', path: '/src/components/TimePicker.js' },
+                { name: 'main-test', path: '/src/main-test.js' }
+            ];
+            
+            let loaded = 0;
+            let errors = [];
+            
+            for (const module of modules) {
+                try {
+                    addLog(`📥 导入 ${module.name}...`);
+                    const imported = await import(module.path);
+                    
+                    if (imported) {
+                        addLog(`✅ ${module.name}: 导入成功`);
+                        loaded++;
+                    } else {
+                        addLog(`❌ ${module.name}: 导入为空`);
+                        errors.push(`${module.name}: 导入为空`);
+                    }
+                    
+                } catch (error) {
+                    addLog(`❌ ${module.name}: 导入失败 - ${error.message}`);
+                    errors.push(`${module.name}: ${error.message}`);
+                }
+            }
+            
+            if (loaded === modules.length) {
+                addLog(`🎉 所有模块导入成功！(${loaded}/${modules.length})`);
+                updateStatus('模块导入正常', 'success', `所有 ${modules.length} 个模块都可以正常导入`);
+            } else {
+                addLog(`⚠️ 部分模块导入失败 (${loaded}/${modules.length})`);
+                updateStatus('模块导入异常', 'error', 
+                    `${loaded}/${modules.length} 个模块导入成功。错误：${errors.join('; ')}`);
+            }
+        };
+        
+        // 完整测试
+        window.testAll = async function() {
+            addLog('🚀 开始完整启动测试...');
+            updateStatus('执行完整测试...', 'info');
+            
+            // 先运行基础测试
+            await new Promise(resolve => {
+                testBasics();
+                setTimeout(resolve, 500);
+            });
+            
+            // 再运行模块测试
+            await testModules();
+            
+            // 最后尝试实际启动测试
+            try {
+                addLog('🏃 尝试实际应用启动...');
+                
+                const { default: BoxingTimerApp } = await import('/src/main-test.js');
+                const app = new BoxingTimerApp();
+                const result = await app.init();
+                
+                if (result.success) {
+                    addLog('🎊 应用启动测试完全成功！');
+                    updateStatus('启动测试成功', 'success', 
+                        '所有测试通过，应用可以正常启动运行');
+                } else {
+                    addLog(`❌ 应用启动失败: ${result.message}`);
+                    updateStatus('应用启动失败', 'error', result.message);
+                }
+                
+            } catch (error) {
+                addLog(`💥 应用启动测试失败: ${error.message}`);
+                updateStatus('启动测试异常', 'error', error.message);
+            }
+        };
+        
+        window.clearLog = function() {
+            log.textContent = `🔍 Boxing Timer 简单启动测试
+准备检查应用启动问题...
+
+日志已清理，请点击按钮开始新的测试。`;
+            updateStatus('等待测试开始...', 'info');
+        };
+        
+        // 捕获全局错误
+        window.addEventListener('error', (event) => {
+            addLog(`💥 全局错误: ${event.error?.message || event.message}`);
+            updateStatus('发生全局错误', 'error', event.error?.message || event.message);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            addLog(`💥 未处理的Promise: ${event.reason}`);
+            updateStatus('Promise错误', 'error', event.reason);
+        });
+        
+        addLog('✨ 简单启动测试页面加载完成');
+        addLog('👆 请点击上方按钮开始测试');
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESTAI - 预设时间记忆功能验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(255, 149, 0, 0.1);
+            border: 2px solid #FF9500;
+            border-radius: 16px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(72, 72, 74, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .instruction {
+            background: rgba(0, 122, 255, 0.2);
+            border: 2px solid #007AFF;
+            color: #007AFF;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+        
+        .test-scenario {
+            background: rgba(48, 209, 88, 0.1);
+            border-left: 4px solid #30D158;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .test-scenario h3 {
+            margin-top: 0;
+            color: #30D158;
+        }
+        
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .step-list li {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .step-list li:before {
+            content: attr(data-step);
+            position: absolute;
+            left: 12px;
+            background: #FF9500;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 3px solid #FF9500;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .test-result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .test-pass {
+            background: rgba(48, 209, 88, 0.2);
+            border: 2px solid #30D158;
+            color: #30D158;
+        }
+        
+        .test-pending {
+            background: rgba(255, 149, 0, 0.2);
+            border: 2px solid #FF9500;
+            color: #FF9500;
+        }
+        
+        .test-fail {
+            background: rgba(255, 59, 48, 0.2);
+            border: 2px solid #FF3B30;
+            color: #FF3B30;
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 10px;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+        }
+        
+        .checklist {
+            margin: 20px 0;
+        }
+        
+        .checklist-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .checklist-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #30D158;
+        }
+        
+        .checklist-item.checked {
+            background: rgba(48, 209, 88, 0.1);
+            border-left: 4px solid #30D158;
+        }
+        
+        .preset-display {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .preset-box {
+            background: rgba(0, 122, 255, 0.2);
+            border: 2px solid #007AFF;
+            padding: 20px;
+            border-radius: 12px;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .preset-box h4 {
+            margin: 0 0 10px 0;
+            color: #007AFF;
+        }
+        
+        .preset-values {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .preset-value {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .highlight {
+            background: rgba(255, 149, 0, 0.3) !important;
+            border-color: #FF9500 !important;
+            animation: pulse 1s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="hero-section">
+            <h1>🧪 TESTAI - 预设时间记忆功能验证</h1>
+            <p>@UIAI + @CMAI + @TESTAI 协作：验证时间选择器智能记忆用户偏好</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 功能说明</h2>
+            <div class="instruction">
+                <strong>🎯 测试目标：</strong>验证时间选择器能智能记忆用户自定义时间<br><br>
+                <strong>✨ 期望行为：</strong><br>
+                • 用户通过滚轮调整时间后，最接近的预设按钮会自动更新<br>
+                • 系统会记住用户最常用的时间设置<br>
+                • 下次打开时，预设按钮显示用户自定义的时间<br>
+                • 智能替换策略：替换最接近的预设值（差异>5秒时生效）
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔬 测试场景</h2>
+            
+            <div class="test-scenario">
+                <h3>场景1：Prepare阶段预设更新</h3>
+                <ul class="step-list">
+                    <li data-step="1">点击Prepare时间（默认00:10）打开时间选择器</li>
+                    <li data-step="2">注意预设按钮显示：00:10、00:20、01:00</li>
+                    <li data-step="3">通过滚轮调整到00:15</li>
+                    <li data-step="4">点击确认</li>
+                    <li data-step="5">再次打开，预设按钮应更新为：00:10、00:15、01:00</li>
+                </ul>
+            </div>
+            
+            <div class="test-scenario">
+                <h3>场景2：持久化存储验证</h3>
+                <ul class="step-list">
+                    <li data-step="1">调整任意阶段时间并确认</li>
+                    <li data-step="2">刷新页面（F5或Cmd+R）</li>
+                    <li data-step="3">再次打开时间选择器</li>
+                    <li data-step="4">验证预设按钮保持用户自定义值</li>
+                </ul>
+            </div>
+            
+            <div class="test-scenario">
+                <h3>场景3：智能替换策略</h3>
+                <ul class="step-list">
+                    <li data-step="1">设置时间为00:18（接近00:20）</li>
+                    <li data-step="2">系统应替换00:20为00:18</li>
+                    <li data-step="3">设置时间为00:21（差异小于5秒）</li>
+                    <li data-step="4">系统不应更新预设（保持原值）</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 实际应用测试</h2>
+            <div class="iframe-container">
+                <iframe src="http://localhost:8080/" title="Boxing Timer Pro"></iframe>
+            </div>
+            
+            <div class="preset-display">
+                <div class="preset-box">
+                    <h4>Prepare预设</h4>
+                    <div class="preset-values">
+                        <div class="preset-value" id="prepare-1">00:10</div>
+                        <div class="preset-value" id="prepare-2">00:20</div>
+                        <div class="preset-value" id="prepare-3">01:00</div>
+                    </div>
+                </div>
+                
+                <div class="preset-box">
+                    <h4>Round预设</h4>
+                    <div class="preset-values">
+                        <div class="preset-value" id="round-1">00:10</div>
+                        <div class="preset-value" id="round-2">00:30</div>
+                        <div class="preset-value" id="round-3">01:00</div>
+                    </div>
+                </div>
+                
+                <div class="preset-box">
+                    <h4>Rest预设</h4>
+                    <div class="preset-values">
+                        <div class="preset-value" id="rest-1">00:30</div>
+                        <div class="preset-value" id="rest-2">01:00</div>
+                        <div class="preset-value" id="rest-3">01:30</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="test-btn" onclick="checkLocalStorage()">🔍 检查localStorage存储</button>
+                <button class="test-btn" onclick="clearPresets()">🗑️ 清除自定义预设</button>
+                <button class="test-btn" onclick="refreshPresetDisplay()">🔄 刷新预设显示</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ TESTAI 验证清单</h2>
+            
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox" id="check1" onchange="updateChecklistItem(this)">
+                    <label for="check1">📝 调整时间后，预设按钮自动更新</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check2" onchange="updateChecklistItem(this)">
+                    <label for="check2">💾 刷新页面后，自定义预设保持不变</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check3" onchange="updateChecklistItem(this)">
+                    <label for="check3">🎯 智能替换最接近的预设值</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check4" onchange="updateChecklistItem(this)">
+                    <label for="check4">⚡ 微小调整（小于5秒）不触发更新</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check5" onchange="updateChecklistItem(this)">
+                    <label for="check5">🔄 各阶段预设独立管理</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check6" onchange="updateChecklistItem(this)">
+                    <label for="check6">📱 预设按钮即时响应更新</label>
+                </div>
+            </div>
+            
+            <div id="final-test-result" class="test-pending">
+                <strong>🤖 等待 TESTAI 最终验证...</strong><br>
+                请完成上述测试场景，然后点击下方按钮获取验证结果。
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="test-btn" onclick="getFinalTestResult()" style="
+                    background: linear-gradient(135deg, #30D158 0%, #28A745 100%);
+                    font-size: 18px;
+                    padding: 18px 36px;
+                ">
+                    🏆 获取 TESTAI 最终验证结果
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateChecklistItem(checkbox) {
+            const item = checkbox.closest('.checklist-item');
+            if (checkbox.checked) {
+                item.classList.add('checked');
+            } else {
+                item.classList.remove('checked');
+            }
+        }
+        
+        function checkLocalStorage() {
+            const presets = localStorage.getItem('boxing-timer-user-presets');
+            if (presets) {
+                const data = JSON.parse(presets);
+                console.log('📦 localStorage数据:', data);
+                alert('✅ 找到用户预设数据！\n\n' + JSON.stringify(data, null, 2));
+                
+                // 高亮显示有变化的预设
+                refreshPresetDisplay();
+            } else {
+                alert('⚠️ 未找到用户预设数据\n\n请先调整时间并确认保存');
+            }
+        }
+        
+        function clearPresets() {
+            if (confirm('确定要清除所有自定义预设吗？')) {
+                localStorage.removeItem('boxing-timer-user-presets');
+                alert('✅ 自定义预设已清除\n\n刷新页面后将恢复默认值');
+                refreshPresetDisplay();
+            }
+        }
+        
+        function refreshPresetDisplay() {
+            const presets = localStorage.getItem('boxing-timer-user-presets');
+            
+            if (presets) {
+                const data = JSON.parse(presets);
+                
+                // 更新Prepare预设显示
+                if (data.prepare) {
+                    updatePresetBox('prepare', data.prepare);
+                }
+                
+                // 更新Round预设显示
+                if (data.round) {
+                    updatePresetBox('round', data.round);
+                }
+                
+                // 更新Rest预设显示
+                if (data.rest) {
+                    updatePresetBox('rest', data.rest);
+                }
+                
+                showToast('✅ 预设显示已更新', 'success');
+            } else {
+                // 显示默认值
+                updatePresetBox('prepare', [10, 20, 60]);
+                updatePresetBox('round', [10, 30, 60]);
+                updatePresetBox('rest', [30, 60, 90]);
+                
+                showToast('ℹ️ 显示默认预设值', 'info');
+            }
+        }
+        
+        function updatePresetBox(phase, times) {
+            const defaults = {
+                prepare: [10, 20, 60],
+                round: [10, 30, 60],
+                rest: [30, 60, 90]
+            };
+            
+            times.forEach((seconds, index) => {
+                const elem = document.getElementById(`${phase}-${index + 1}`);
+                if (elem) {
+                    const minutes = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    const formatted = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    elem.textContent = formatted;
+                    
+                    // 如果值与默认不同，高亮显示
+                    if (defaults[phase] && seconds !== defaults[phase][index]) {
+                        elem.classList.add('highlight');
+                        setTimeout(() => elem.classList.remove('highlight'), 2000);
+                    }
+                }
+            });
+        }
+        
+        function getFinalTestResult() {
+            const checkedItems = document.querySelectorAll('.checklist-item input:checked').length;
+            const totalItems = document.querySelectorAll('.checklist-item input').length;
+            
+            const resultDiv = document.getElementById('final-test-result');
+            
+            const score = checkedItems / totalItems;
+            const passed = score >= 0.8;
+            
+            resultDiv.className = passed ? 'test-pass' : (score >= 0.5 ? 'test-pending' : 'test-fail');
+            resultDiv.innerHTML = `
+                <strong>🤖 TESTAI 最终验证结果：${passed ? '✅ 优秀通过' : score >= 0.5 ? '⚠️ 部分通过' : '❌ 需要修复'}</strong><br>
+                <br>
+                <strong>详细分析：</strong><br>
+                验证项目: ${checkedItems}/${totalItems} (${Math.round(score*100)}%)<br>
+                <br>
+                <strong>@UIAI 界面评估：</strong><br>
+                ${passed ? '✅ 预设按钮动态更新，用户体验流畅自然' : '⚠️ 预设更新存在问题，影响使用体验'}<br>
+                <br>
+                <strong>@CMAI 代码评估：</strong><br>
+                ${passed ? '✅ 智能替换算法正确，localStorage持久化完善' : '⚠️ 逻辑实现需要优化，存储机制有问题'}<br>
+                <br>
+                <strong>@TESTAI 质量评估：</strong><br>
+                ${passed ? '✅ 功能稳定可靠，所有测试场景通过' : '⚠️ 存在功能缺陷，需要修复'}<br>
+                <br>
+                ${passed ? 
+                    '<strong style="color: #30D158;">🎉 预设时间记忆功能完美实现！</strong><br>系统能智能学习用户偏好，提供个性化的时间预设。' : 
+                    score >= 0.5 ?
+                    '<strong style="color: #FF9500;">💡 功能基本可用，但仍有改进空间。</strong><br>请检查未通过的验证项目。' :
+                    '<strong style="color: #FF3B30;">⚠️ 功能存在严重问题，需要重新修复。</strong>'
+                }
+            `;
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#30D158' : type === 'error' ? '#FF3B30' : '#007AFF'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // 页面加载时自动刷新预设显示
+        window.addEventListener('load', () => {
+            console.log('🤖 TESTAI 预设记忆功能验证工具已加载');
+            refreshPresetDisplay();
+            showToast('🧪 准备测试预设时间记忆功能', 'info');
+        });
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

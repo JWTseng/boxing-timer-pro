@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据一致性测试 - Boxing Timer Pro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d30);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .test-result {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .pass {
+            background: #34C759;
+            color: white;
+        }
+        .fail {
+            background: #FF3B30;
+            color: white;
+        }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .test-button:hover {
+            background: #0056CC;
+        }
+        .report {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        h1, h2 {
+            color: #007AFF;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 数据一致性全面测试</h1>
+        
+        <div class="test-section">
+            <h2>📊 实时测试控制</h2>
+            <button class="test-button" onclick="runFullTest()">🚀 运行完整测试</button>
+            <button class="test-button" onclick="resetAllData()">🔄 重置所有数据</button>
+            <button class="test-button" onclick="viewDetailedReport()">📋 查看详细报告</button>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 HTML显示值检查</h2>
+            <div id="html-values-test">
+                <div class="test-item">
+                    <span>Prepare时间显示</span>
+                    <span id="prepare-result" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Round时间显示</span>
+                    <span id="round-result" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Warning时间显示</span>
+                    <span id="warning-result" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Rest时间显示</span>
+                    <span id="rest-result" class="test-result">等待测试</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>💾 localStorage数据检查</h2>
+            <div id="storage-test">
+                <div class="test-item">
+                    <span>用户预设数据</span>
+                    <span id="presets-result" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>位置记忆数据</span>
+                    <span id="positions-result" class="test-result">等待测试</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 数据一致性检查</h2>
+            <div id="consistency-test">
+                <div class="test-item">
+                    <span>Prepare数据一致性</span>
+                    <span id="prepare-consistency" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Round数据一致性</span>
+                    <span id="round-consistency" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Warning数据一致性</span>
+                    <span id="warning-consistency" class="test-result">等待测试</span>
+                </div>
+                <div class="test-item">
+                    <span>Rest数据一致性</span>
+                    <span id="rest-consistency" class="test-result">等待测试</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 测试报告</h2>
+            <div class="report" id="test-report">点击"运行完整测试"开始...</div>
+        </div>
+    </div>
+
+    <!-- 引入必要的模块 -->
+    <script type="module">
+        import { DataConsistency } from './src/utils/DataConsistency.js';
+        import { TimePicker } from './src/components/TimePicker.js';
+
+        let dataConsistency;
+        let testResults = {};
+
+        // 初始化测试环境
+        async function initializeTest() {
+            console.log('🧪 初始化测试环境...');
+            
+            // 创建测试用的HTML元素
+            createTestElements();
+            
+            // 初始化数据一致性检查器
+            dataConsistency = new DataConsistency();
+            
+            console.log('✅ 测试环境初始化完成');
+        }
+
+        // 创建测试用的HTML元素
+        function createTestElements() {
+            const testContainer = document.createElement('div');
+            testContainer.style.display = 'none';
+            testContainer.innerHTML = `
+                <span id="prepare-time">00:10</span>
+                <span id="round-time">00:10</span>
+                <span id="warning-time">00:10</span>
+                <span id="rest-time">00:30</span>
+            `;
+            document.body.appendChild(testContainer);
+        }
+
+        // 运行完整测试
+        window.runFullTest = async function() {
+            console.log('🚀 开始完整数据一致性测试...');
+            
+            const report = document.getElementById('test-report');
+            report.textContent = '🔄 测试进行中...\n';
+            
+            await initializeTest();
+            
+            // 1. 测试HTML显示值
+            testResults.htmlValues = await testHTMLValues();
+            updateResultDisplay('html-values-test', testResults.htmlValues);
+            
+            // 2. 测试localStorage数据
+            testResults.storageData = await testStorageData();
+            updateResultDisplay('storage-test', testResults.storageData);
+            
+            // 3. 测试数据一致性
+            testResults.consistency = await testDataConsistency();
+            updateResultDisplay('consistency-test', testResults.consistency);
+            
+            // 生成完整报告
+            generateTestReport();
+        };
+
+        // 测试HTML显示值
+        async function testHTMLValues() {
+            console.log('📄 测试HTML显示值...');
+            
+            const results = {};
+            const phases = ['prepare', 'round', 'warning', 'rest'];
+            const expectedValues = { prepare: 10, round: 10, warning: 10, rest: 30 };
+            
+            phases.forEach(phase => {
+                const element = document.getElementById(`${phase}-time`);
+                if (element) {
+                    const displayText = element.textContent.trim();
+                    const seconds = parseTimeText(displayText);
+                    const expected = expectedValues[phase];
+                    
+                    results[phase] = {
+                        displayed: displayText,
+                        seconds: seconds,
+                        expected: expected,
+                        pass: seconds === expected
+                    };
+                } else {
+                    results[phase] = {
+                        displayed: 'N/A',
+                        seconds: 0,
+                        expected: expectedValues[phase],
+                        pass: false,
+                        error: 'Element not found'
+                    };
+                }
+            });
+            
+            return results;
+        }
+
+        // 测试localStorage数据
+        async function testStorageData() {
+            console.log('💾 测试localStorage数据...');
+            
+            const results = {};
+            
+            // 测试用户预设
+            try {
+                const presets = localStorage.getItem('boxing-timer-user-presets');
+                if (presets) {
+                    const parsed = JSON.parse(presets);
+                    results.presets = {
+                        data: parsed,
+                        pass: validatePresetStructure(parsed)
+                    };
+                } else {
+                    results.presets = {
+                        data: null,
+                        pass: true,
+                        note: 'No preset data (using defaults)'
+                    };
+                }
+            } catch (error) {
+                results.presets = {
+                    error: error.message,
+                    pass: false
+                };
+            }
+            
+            // 测试位置记忆
+            try {
+                const positions = localStorage.getItem('boxing-timer-last-selected-indexes');
+                if (positions) {
+                    const parsed = JSON.parse(positions);
+                    results.positions = {
+                        data: parsed,
+                        pass: validatePositionStructure(parsed)
+                    };
+                } else {
+                    results.positions = {
+                        data: null,
+                        pass: true,
+                        note: 'No position data (using defaults)'
+                    };
+                }
+            } catch (error) {
+                results.positions = {
+                    error: error.message,
+                    pass: false
+                };
+            }
+            
+            return results;
+        }
+
+        // 测试数据一致性
+        async function testDataConsistency() {
+            console.log('🔧 测试数据一致性...');
+            
+            const consistencyResult = dataConsistency.checkConsistency();
+            const results = {};
+            
+            const phases = ['prepare', 'round', 'warning', 'rest'];
+            phases.forEach(phase => {
+                const htmlValue = consistencyResult.htmlValues[phase];
+                const presetValue = consistencyResult.userPresets[phase] ? 
+                                   consistencyResult.userPresets[phase][0] : null;
+                
+                results[phase] = {
+                    htmlValue: htmlValue,
+                    presetValue: presetValue,
+                    consistent: htmlValue === presetValue,
+                    pass: htmlValue === presetValue
+                };
+            });
+            
+            results.overall = {
+                hasIssues: consistencyResult.hasIssues,
+                issueCount: consistencyResult.issues.length,
+                pass: !consistencyResult.hasIssues
+            };
+            
+            return results;
+        }
+
+        // 更新结果显示
+        function updateResultDisplay(sectionId, results) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            
+            const items = section.querySelectorAll('.test-item');
+            items.forEach((item, index) => {
+                const resultSpan = item.querySelector('.test-result');
+                if (resultSpan) {
+                    let pass = false;
+                    let text = 'UNKNOWN';
+                    
+                    if (sectionId === 'html-values-test') {
+                        const phases = ['prepare', 'round', 'warning', 'rest'];
+                        const phase = phases[index];
+                        if (results[phase]) {
+                            pass = results[phase].pass;
+                            text = pass ? 'PASS' : 'FAIL';
+                        }
+                    } else if (sectionId === 'storage-test') {
+                        const keys = ['presets', 'positions'];
+                        const key = keys[index];
+                        if (results[key]) {
+                            pass = results[key].pass;
+                            text = pass ? 'PASS' : 'FAIL';
+                        }
+                    } else if (sectionId === 'consistency-test') {
+                        const phases = ['prepare', 'round', 'warning', 'rest'];
+                        const phase = phases[index];
+                        if (results[phase]) {
+                            pass = results[phase].pass;
+                            text = pass ? 'PASS' : 'FAIL';
+                        }
+                    }
+                    
+                    resultSpan.textContent = text;
+                    resultSpan.className = `test-result ${pass ? 'pass' : 'fail'}`;
+                }
+            });
+        }
+
+        // 生成测试报告
+        function generateTestReport() {
+            let report = '📊 数据一致性测试报告\n';
+            report += '='.repeat(50) + '\n\n';
+            
+            // HTML显示值测试结果
+            report += '📄 HTML显示值测试:\n';
+            Object.keys(testResults.htmlValues).forEach(phase => {
+                const result = testResults.htmlValues[phase];
+                report += `  ${phase}: ${result.displayed} (${result.seconds}s) - ${result.pass ? '✅' : '❌'}\n`;
+            });
+            report += '\n';
+            
+            // localStorage数据测试结果
+            report += '💾 localStorage数据测试:\n';
+            Object.keys(testResults.storageData).forEach(key => {
+                const result = testResults.storageData[key];
+                report += `  ${key}: ${result.pass ? '✅' : '❌'}\n`;
+                if (result.note) report += `    注: ${result.note}\n`;
+                if (result.error) report += `    错误: ${result.error}\n`;
+            });
+            report += '\n';
+            
+            // 数据一致性测试结果
+            report += '🔧 数据一致性测试:\n';
+            const phases = ['prepare', 'round', 'warning', 'rest'];
+            phases.forEach(phase => {
+                const result = testResults.consistency[phase];
+                report += `  ${phase}: HTML=${result.htmlValue}s, 预设=${result.presetValue}s - ${result.pass ? '✅' : '❌'}\n`;
+            });
+            
+            const overall = testResults.consistency.overall;
+            report += `  总体状态: ${overall.pass ? '✅ 一致' : `❌ 发现${overall.issueCount}个问题`}\n\n`;
+            
+            // 总结
+            const totalTests = Object.keys(testResults.htmlValues).length + 
+                              Object.keys(testResults.storageData).length + 
+                              phases.length + 1;
+            let passedTests = 0;
+            
+            Object.values(testResults.htmlValues).forEach(r => r.pass && passedTests++);
+            Object.values(testResults.storageData).forEach(r => r.pass && passedTests++);
+            phases.forEach(phase => testResults.consistency[phase].pass && passedTests++);
+            if (testResults.consistency.overall.pass) passedTests++;
+            
+            report += `📊 测试总结: ${passedTests}/${totalTests} 通过 (${Math.round(passedTests/totalTests*100)}%)\n`;
+            
+            document.getElementById('test-report').textContent = report;
+            console.log('📋 测试报告已生成');
+        }
+
+        // 重置所有数据
+        window.resetAllData = function() {
+            if (confirm('确定要重置所有数据吗？这将清除用户预设和位置记忆。')) {
+                localStorage.removeItem('boxing-timer-user-presets');
+                localStorage.removeItem('boxing-timer-last-selected-indexes');
+                alert('✅ 所有数据已重置');
+                location.reload();
+            }
+        };
+
+        // 查看详细报告
+        window.viewDetailedReport = function() {
+            if (dataConsistency) {
+                const detailedReport = dataConsistency.generateReport();
+                const reportWindow = window.open('', '_blank');
+                reportWindow.document.write(`
+                    <pre style="font-family: Monaco, monospace; padding: 20px; background: #1a1a1a; color: #fff;">
+                        ${detailedReport}
+                    </pre>
+                `);
+            } else {
+                alert('请先运行完整测试');
+            }
+        };
+
+        // 辅助函数
+        function parseTimeText(timeText) {
+            const [minutes, seconds] = timeText.split(':').map(s => parseInt(s) || 0);
+            return minutes * 60 + seconds;
+        }
+
+        function validatePresetStructure(presets) {
+            const requiredPhases = ['prepare', 'round', 'warning', 'rest'];
+            return requiredPhases.every(phase => 
+                presets[phase] && Array.isArray(presets[phase]) && presets[phase].length > 0
+            );
+        }
+
+        function validatePositionStructure(positions) {
+            const requiredPhases = ['prepare', 'round', 'warning', 'rest'];
+            return requiredPhases.every(phase => 
+                typeof positions[phase] === 'number' && positions[phase] >= 0
+            );
+        }
+    </script>
+</body>
+</html>

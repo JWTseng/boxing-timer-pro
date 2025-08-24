@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重构后的Play/Pause按钮测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #E8D85C;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .test-container {
+            max-width: 500px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .button-demo {
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #E8D85C 0%, #D4C147 100%);
+            border-radius: 15px;
+            position: relative;
+        }
+
+        /* ========== 重构后的Play/Pause按钮样式 ========== */
+        
+        /* 主按钮容器 */
+        .play-pause-btn {
+            /* 尺寸和基础样式 */
+            width: 60px;
+            height: 60px;
+            min-width: 60px;
+            min-height: 60px;
+            border-radius: 50%;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            
+            /* 背景和阴影 */
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            
+            /* 布局 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            /* 过渡动画 */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* 无障碍性 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 悬停效果 */
+        .play-pause-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 
+                0 6px 24px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        /* 按压效果 */
+        .play-pause-btn:active {
+            transform: scale(0.95);
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 2px 12px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 焦点状态（键盘访问） */
+        .play-pause-btn:focus {
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.25),
+                0 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+        
+        /* 图标容器 */
+        .btn-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 隐藏状态 */
+        .btn-icon.hidden {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+            pointer-events: none;
+        }
+        
+        /* 暂停图标样式 - 修复垂直对齐 */
+        .pause-icon {
+            width: 20px;
+            height: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pause-bar {
+            position: absolute;
+            width: 6px;
+            height: 16px;
+            background: #333333;
+            border-radius: 1px;
+            top: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .pause-bar-left {
+            left: 3px;
+        }
+        
+        .pause-bar-right {
+            right: 3px;
+        }
+        
+        /* 播放图标样式 */
+        .play-icon {
+            width: 24px;
+            height: 24px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .play-svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 状态切换动画 */
+        .play-pause-btn[data-state="pause"] .pause-icon {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .play-pause-btn[data-state="pause"] .play-icon {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+        }
+        
+        .play-pause-btn[data-state="play"] .pause-icon {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+        }
+        
+        .play-pause-btn[data-state="play"] .play-icon {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        /* 兼容性隐藏类 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 测试控制面板 */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .control-btn.primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .control-btn.primary:hover {
+            background: #0056CC;
+        }
+
+        .control-btn.secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .control-btn.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .status-display {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007AFF;
+        }
+
+        .log-display {
+            margin-top: 30px;
+            padding: 15px;
+            background: #000;
+            color: #0f0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .feature-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .feature-list li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔄 重构后的Play/Pause按钮测试</h1>
+        <p>基于Boxing Timer设计规范完全重构的按钮组件</p>
+
+        <div class="button-demo">
+            <h3>按钮演示</h3>
+            <button id="play-pause-btn" class="play-pause-btn" 
+                    data-state="pause" 
+                    aria-label="暂停">
+                <!-- 暂停图标 -->
+                <div class="btn-icon pause-icon">
+                    <div class="pause-bar pause-bar-left"></div>
+                    <div class="pause-bar pause-bar-right"></div>
+                </div>
+                <!-- 播放图标 -->
+                <div class="btn-icon play-icon hidden">
+                    <svg class="play-svg" width="18" height="24" viewBox="0 0 18 24">
+                        <polygon points="0,12 18,6 18,18" fill="#333333"/>
+                    </svg>
+                </div>
+            </button>
+        </div>
+
+        <div class="status-display">
+            <strong>当前状态:</strong> <span id="current-state">pause (显示暂停图标)</span><br>
+            <strong>ARIA标签:</strong> <span id="aria-label">暂停</span><br>
+            <strong>data-state:</strong> <span id="data-state">pause</span>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn primary" onclick="toggleButton()">切换按钮状态</button>
+            <button class="control-btn secondary" onclick="setPauseState()">设为暂停状态</button>
+            <button class="control-btn secondary" onclick="setPlayState()">设为播放状态</button>
+            <button class="control-btn secondary" onclick="testAnimation()">测试动画</button>
+            <button class="control-btn secondary" onclick="clearLog()">清空日志</button>
+        </div>
+
+        <div class="feature-list">
+            <h4>✨ 重构特性</h4>
+            <ul>
+                <li>单个按钮容器，双图标切换</li>
+                <li>data-state属性驱动状态</li>
+                <li>CSS状态选择器自动切换</li>
+                <li>流畅的缩放和渐变动画</li>
+                <li>符合Apple HIG的60px触控目标</li>
+                <li>半透明背景+毛玻璃效果</li>
+                <li>完整的无障碍性支持</li>
+                <li>响应式设计适配</li>
+            </ul>
+        </div>
+
+        <div class="log-display" id="log-display"></div>
+    </div>
+
+    <script>
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const currentStateSpan = document.getElementById('current-state');
+        const ariaLabelSpan = document.getElementById('aria-label');
+        const dataStateSpan = document.getElementById('data-state');
+        const logDisplay = document.getElementById('log-display');
+
+        let logContent = '';
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent = `[${timestamp}] ${message}\n` + logContent;
+            if (logContent.split('\n').length > 50) {
+                logContent = logContent.split('\n').slice(0, 50).join('\n');
+            }
+            logDisplay.textContent = logContent;
+        }
+
+        function updateStatusDisplay() {
+            const state = playPauseBtn.getAttribute('data-state');
+            const ariaLabel = playPauseBtn.getAttribute('aria-label');
+            
+            currentStateSpan.textContent = state === 'pause' ? 
+                'pause (显示暂停图标)' : 'play (显示播放图标)';
+            ariaLabelSpan.textContent = ariaLabel;
+            dataStateSpan.textContent = state;
+        }
+
+        function updatePlayPauseButton(state) {
+            const pauseIcon = playPauseBtn.querySelector('.pause-icon');
+            const playIcon = playPauseBtn.querySelector('.play-icon');
+            
+            // 更新data-state属性
+            playPauseBtn.setAttribute('data-state', state);
+            
+            // 更新ARIA标签
+            if (state === 'pause') {
+                playPauseBtn.setAttribute('aria-label', '暂停');
+                // CSS会自动处理图标显示/隐藏，但我们也可以手动控制
+                pauseIcon?.classList.remove('hidden');
+                playIcon?.classList.add('hidden');
+            } else {
+                playPauseBtn.setAttribute('aria-label', '播放');
+                pauseIcon?.classList.add('hidden');
+                playIcon?.classList.remove('hidden');
+            }
+            
+            updateStatusDisplay();
+            addLog(`🔄 按钮状态已更新为: ${state}`);
+        }
+
+        function toggleButton() {
+            const currentState = playPauseBtn.getAttribute('data-state');
+            const newState = currentState === 'pause' ? 'play' : 'pause';
+            updatePlayPauseButton(newState);
+            addLog(`👆 用户点击切换: ${currentState} → ${newState}`);
+        }
+
+        function setPauseState() {
+            updatePlayPauseButton('pause');
+            addLog('⏸️ 手动设置为暂停状态');
+        }
+
+        function setPlayState() {
+            updatePlayPauseButton('play');
+            addLog('▶️ 手动设置为播放状态');
+        }
+
+        function testAnimation() {
+            addLog('🎬 测试切换动画...');
+            setPauseState();
+            setTimeout(() => {
+                setPlayState();
+                setTimeout(() => {
+                    setPauseState();
+                    addLog('✅ 动画测试完成');
+                }, 500);
+            }, 500);
+        }
+
+        function clearLog() {
+            logContent = '';
+            logDisplay.textContent = '';
+            addLog('🧹 日志已清空');
+        }
+
+        // 绑定按钮点击事件
+        playPauseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleButton();
+        });
+
+        // 键盘支持
+        playPauseBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleButton();
+                addLog('⌨️ 键盘触发切换');
+            }
+        });
+
+        // 初始化
+        updateStatusDisplay();
+        addLog('🚀 重构按钮测试页面已加载');
+        addLog('💡 点击按钮或使用下方控制面板进行测试');
+    </script>
+</body>
+</html>

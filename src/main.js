@@ -2,7 +2,8 @@
 // 专业拳击/搏击训练计时器
 
 import './styles/main.css';
-// import { UIController } from './components/UIController.js';
+// CMAI修复：使用简化版健康检查（避免语法问题）
+import { SimpleHealthChecker } from './utils/SimpleHealthChecker.js';
 import { ViewManager } from './components/ViewManager.js';
 import { TimePicker } from './components/TimePicker.js';
 // 暂时注释了复杂的依赖，优先解决基础问题
@@ -31,6 +32,15 @@ class BoxingTimerApp {
         try {
             console.log('🥊 Boxing Timer Pro 启动中...');
             
+            // CMAI步骤1: 简化版健康检查
+            const healthChecker = new SimpleHealthChecker();
+            const healthResults = await healthChecker.runBasicCheck();
+            
+            if (!healthResults.overall) {
+                const summary = healthChecker.getStartupSummary();
+                throw new Error(`系统健康检查失败: ${summary.errors} 个错误`);
+            }
+            
             // 显示加载界面
             this.showLoadingScreen();
             
@@ -51,7 +61,7 @@ class BoxingTimerApp {
             
         } catch (error) {
             console.error('❌ 应用初始化失败:', error);
-            this.showErrorMessage('应用初始化失败，请刷新页面重试');
+            this.showErrorMessage(`应用初始化失败: ${error.message}\n\n请刷新页面重试`);
         }
     }
 

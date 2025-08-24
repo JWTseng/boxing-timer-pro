@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试运行界面 - Boxing Timer Pro</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+    <style>
+        /* 测试控制面板 */
+        .test-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-width: 300px;
+        }
+        
+        .test-panel h3 {
+            margin: 0 0 12px 0;
+            color: #FFD60A;
+        }
+        
+        .test-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .test-btn {
+            padding: 8px 12px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .test-btn:hover {
+            background: #555;
+        }
+        
+        .phase-group {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .phase-group .test-btn {
+            flex: 1;
+            font-size: 10px;
+            padding: 4px 6px;
+        }
+        
+        .test-info {
+            margin-top: 12px;
+            font-size: 11px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <!-- 测试控制面板 -->
+    <div class="test-panel">
+        <h3>🧪 运行界面测试</h3>
+        <div class="test-controls">
+            <button class="test-btn" onclick="showRunningView()">显示运行界面</button>
+            <button class="test-btn" onclick="hideRunningView()">隐藏运行界面</button>
+            
+            <div class="phase-group">
+                <button class="test-btn" onclick="testPhase('PREPARE')">PREP</button>
+                <button class="test-btn" onclick="testPhase('ROUND')">ROUND</button>
+                <button class="test-btn" onclick="testPhase('WARNING')">WARN</button>
+                <button class="test-btn" onclick="testPhase('REST')">REST</button>
+            </div>
+            
+            <button class="test-btn" onclick="testFlashing()">测试闪动</button>
+            <button class="test-btn" onclick="stopFlashing()">停止闪动</button>
+            <button class="test-btn" onclick="testTimer()">测试计时器</button>
+            <button class="test-btn" onclick="resetView()">重置界面</button>
+        </div>
+        
+        <div class="test-info">
+            <div>当前阶段: <span id="current-phase">无</span></div>
+            <div>闪动状态: <span id="flash-status">关闭</span></div>
+        </div>
+    </div>
+
+    <!-- 运行时界面 -->
+    <div id="timer-running-view" class="view timer-running" style="display: none;">
+        <!-- 全屏背景容器 - 支持动态阶段颜色 -->
+        <div class="running-background" id="running-background">
+            <!-- 中上部：超大时钟显示 -->
+            <div class="running-timer-section">
+                <div id="main-timer" class="main-timer-large">00:10</div>
+            </div>
+            
+            <!-- 中部：阶段信息卡片 -->
+            <div class="running-phase-section">
+                <div class="phase-info-card" id="phase-info-card">
+                    <div class="phase-title" id="phase-title">PREPARE</div>
+                    <div class="round-info" id="round-info">Round 1 / 10</div>
+                    <div class="phase-description" id="phase-description">准备阶段</div>
+                </div>
+            </div>
+            
+            <!-- 底部：控制按钮和总剩余时间 -->
+            <div class="running-bottom-section">
+                <!-- 圆形控制按钮区域 -->
+                <div class="running-controls">
+                    <button id="pause-btn" class="control-btn-circular primary">
+                        <span class="btn-icon" id="pause-icon">⏸</span>
+                        <span class="btn-label">PAUSE</span>
+                    </button>
+                    <button id="stop-btn" class="control-btn-circular secondary">
+                        <span class="btn-icon">⏹</span>
+                        <span class="btn-label">STOP</span>
+                    </button>
+                </div>
+                
+                <!-- 总剩余时间显示 -->
+                <div class="total-remaining-time">
+                    <div class="remaining-label">总剩余时间</div>
+                    <div class="remaining-value" id="total-remaining">09:30</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载RunningViewController -->
+    <script type="module">
+        import { RunningViewController } from './src/ui/RunningViewController.js';
+        
+        // 全局变量
+        let runningViewController;
+        let testTimer;
+        let currentTestTime = 30;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            runningViewController = new RunningViewController();
+            runningViewController.init();
+            console.log('🧪 测试环境初始化完成');
+        });
+        
+        // 测试函数
+        window.showRunningView = () => {
+            document.getElementById('timer-running-view').style.display = 'block';
+        };
+        
+        window.hideRunningView = () => {
+            document.getElementById('timer-running-view').style.display = 'none';
+        };
+        
+        window.testPhase = (phase) => {
+            console.log(`🧪 测试阶段: ${phase}`);
+            
+            // 发送阶段变化事件
+            const event = new CustomEvent('timer-phase-change', {
+                detail: {
+                    phase: phase,
+                    roundNumber: Math.floor(Math.random() * 10) + 1,
+                    totalRounds: 10,
+                    duration: 30
+                }
+            });
+            document.dispatchEvent(event);
+            
+            // 更新测试信息
+            document.getElementById('current-phase').textContent = phase;
+        };
+        
+        window.testFlashing = () => {
+            console.log('🧪 测试闪动效果');
+            const event = new CustomEvent('timer-flash-start', {
+                detail: {
+                    remainingTime: 3,
+                    phase: 'ROUND'
+                }
+            });
+            document.dispatchEvent(event);
+            
+            document.getElementById('flash-status').textContent = '开启';
+            
+            // 3秒后自动停止
+            setTimeout(() => {
+                window.stopFlashing();
+            }, 3000);
+        };
+        
+        window.stopFlashing = () => {
+            const event = new CustomEvent('timer-flash-stop', { detail: {} });
+            document.dispatchEvent(event);
+            document.getElementById('flash-status').textContent = '关闭';
+        };
+        
+        window.testTimer = () => {
+            console.log('🧪 测试计时器更新');
+            
+            if (testTimer) {
+                clearInterval(testTimer);
+            }
+            
+            currentTestTime = 30;
+            
+            testTimer = setInterval(() => {
+                if (currentTestTime <= 0) {
+                    clearInterval(testTimer);
+                    return;
+                }
+                
+                // 发送计时事件
+                const event = new CustomEvent('timer-tick', {
+                    detail: {
+                        remainingTime: currentTestTime,
+                        totalRemainingTime: currentTestTime + 60,
+                        isPaused: false,
+                        phase: 'ROUND',
+                        isWarning: currentTestTime <= 10
+                    }
+                });
+                document.dispatchEvent(event);
+                
+                currentTestTime--;
+            }, 1000);
+        };
+        
+        window.resetView = () => {
+            if (runningViewController) {
+                runningViewController.reset();
+            }
+            
+            if (testTimer) {
+                clearInterval(testTimer);
+                testTimer = null;
+            }
+            
+            document.getElementById('current-phase').textContent = '无';
+            document.getElementById('flash-status').textContent = '关闭';
+            
+            console.log('🧪 界面已重置');
+        };
+    </script>
+</body>
+</html>

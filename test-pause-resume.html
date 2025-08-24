@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESTAI - Play/Pause 继续计时功能验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(255, 149, 0, 0.1);
+            border: 2px solid #FF9500;
+            border-radius: 16px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(72, 72, 74, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 3px solid #FF9500;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .test-result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .test-pass {
+            background: rgba(48, 209, 88, 0.2);
+            border: 2px solid #30D158;
+            color: #30D158;
+        }
+        
+        .test-pending {
+            background: rgba(255, 149, 0, 0.2);
+            border: 2px solid #FF9500;
+            color: #FF9500;
+        }
+        
+        .test-fail {
+            background: rgba(255, 59, 48, 0.2);
+            border: 2px solid #FF3B30;
+            color: #FF3B30;
+        }
+        
+        .test-btn {
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 10px;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+        }
+        
+        .instruction {
+            background: rgba(0, 122, 255, 0.2);
+            border: 2px solid #007AFF;
+            color: #007AFF;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        
+        .checklist {
+            margin: 20px 0;
+        }
+        
+        .checklist-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .checklist-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #30D158;
+        }
+        
+        .checklist-item.checked {
+            background: rgba(48, 209, 88, 0.1);
+            border-left: 4px solid #30D158;
+        }
+        
+        .demo-timer {
+            text-align: center;
+            margin: 30px 0;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+        }
+        
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #FF9500;
+            margin: 20px 0;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .timer-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        .demo-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .start-btn {
+            background: #30D158;
+            color: white;
+        }
+        
+        .pause-btn {
+            background: #FF9500;
+            color: white;
+        }
+        
+        .reset-btn {
+            background: #FF3B30;
+            color: white;
+        }
+        
+        .demo-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .demo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="hero-section">
+            <h1>🎮 TESTAI - Play/Pause 继续计时功能验证</h1>
+            <p>@UIAI + @CMAI 协作：验证暂停后能从暂停点继续计时，而不是重新开始</p>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 测试说明</h2>
+            <div class="instruction">
+                <strong>🎯 测试目标：</strong>验证Play/Pause按钮的正确行为<br><br>
+                <strong>❌ 错误行为：</strong>暂停后点击Play，计时器重新开始<br>
+                <strong>✅ 正确行为：</strong>暂停后点击Play，从暂停时间点继续计时<br><br>
+                <strong>📝 测试步骤：</strong><br>
+                1. 在下方iframe中点击START启动计时器<br>
+                2. 等待几秒后点击暂停按钮（||符号）<br>
+                3. 记录暂停时的时间（例如：00:07）<br>
+                4. 点击播放按钮（▶符号）<br>
+                5. 观察计时是否从暂停时间继续（应该显示00:06, 00:05...）
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🖥️ 独立演示 - 正确的计时器行为</h2>
+            <div class="demo-timer">
+                <div class="timer-display" id="demo-timer">00:10</div>
+                <div class="timer-controls">
+                    <button class="demo-btn start-btn" onclick="startDemoTimer()">开始</button>
+                    <button class="demo-btn pause-btn" onclick="pauseDemoTimer()" disabled>暂停</button>
+                    <button class="demo-btn reset-btn" onclick="resetDemoTimer()">重置</button>
+                </div>
+                <div style="margin-top: 20px; color: #888;">
+                    <strong>状态：</strong><span id="demo-status">未开始</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 实际应用测试</h2>
+            <div class="iframe-container">
+                <iframe src="http://localhost:8080/" title="Boxing Timer Pro"></iframe>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 TESTAI 验证清单</h2>
+            
+            <div class="checklist">
+                <div class="checklist-item">
+                    <input type="checkbox" id="check1" onchange="updateChecklistItem(this)">
+                    <label for="check1">✅ 启动计时器，观察倒计时正常工作</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check2" onchange="updateChecklistItem(this)">
+                    <label for="check2">⏸️ 点击暂停按钮，计时器成功暂停</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check3" onchange="updateChecklistItem(this)">
+                    <label for="check3">🔄 暂停时按钮从"||"变为"▶"</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check4" onchange="updateChecklistItem(this)">
+                    <label for="check4">📝 记录暂停时的准确时间（如00:07）</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check5" onchange="updateChecklistItem(this)">
+                    <label for="check5">▶️ 点击播放按钮，从暂停点继续计时（00:06, 00:05...）</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check6" onchange="updateChecklistItem(this)">
+                    <label for="check6">🔄 恢复时按钮从"▶"变回"||"</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check7" onchange="updateChecklistItem(this)">
+                    <label for="check7">🎯 多次暂停/恢复操作都保持时间连续性</label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox" id="check8" onchange="updateChecklistItem(this)">
+                    <label for="check8">⏹️ 停止按钮能正确终止并重置状态</label>
+                </div>
+            </div>
+            
+            <div id="final-test-result" class="test-pending">
+                <strong>🤖 等待 TESTAI 最终验证...</strong><br>
+                请完成上述检查项目，然后点击下方按钮获取验证结果。
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="test-btn" onclick="getFinalTestResult()" style="
+                    background: linear-gradient(135deg, #30D158 0%, #28A745 100%);
+                    font-size: 18px;
+                    padding: 18px 36px;
+                ">
+                    🏆 获取 TESTAI 最终验证结果
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 演示计时器状态
+        let demoTime = 10;
+        let demoInterval = null;
+        let demoIsPaused = false;
+        let demoPausedTime = null;
+
+        function startDemoTimer() {
+            const startBtn = document.querySelector('.start-btn');
+            const pauseBtn = document.querySelector('.pause-btn');
+            const resetBtn = document.querySelector('.reset-btn');
+            const statusEl = document.getElementById('demo-status');
+            
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            resetBtn.disabled = false;
+            
+            statusEl.textContent = '运行中';
+            statusEl.style.color = '#30D158';
+            
+            demoInterval = setInterval(() => {
+                if (demoTime > 0) {
+                    const minutes = Math.floor(demoTime / 60);
+                    const seconds = demoTime % 60;
+                    document.getElementById('demo-timer').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    demoTime--;
+                } else {
+                    clearInterval(demoInterval);
+                    statusEl.textContent = '完成';
+                    statusEl.style.color = '#FF9500';
+                }
+            }, 1000);
+        }
+
+        function pauseDemoTimer() {
+            const startBtn = document.querySelector('.start-btn');
+            const pauseBtn = document.querySelector('.pause-btn');
+            const statusEl = document.getElementById('demo-status');
+            
+            if (!demoIsPaused) {
+                // 暂停
+                clearInterval(demoInterval);
+                demoInterval = null;
+                demoPausedTime = demoTime;
+                demoIsPaused = true;
+                
+                pauseBtn.textContent = '继续';
+                statusEl.textContent = `已暂停（在 ${Math.floor(demoTime/60).toString().padStart(2,'0')}:${(demoTime%60).toString().padStart(2,'0')}）`;
+                statusEl.style.color = '#FF9500';
+                
+                console.log(`🎯 演示：暂停在 ${demoTime} 秒`);
+            } else {
+                // 继续
+                demoTime = demoPausedTime;
+                demoIsPaused = false;
+                
+                pauseBtn.textContent = '暂停';
+                statusEl.textContent = '继续运行中';
+                statusEl.style.color = '#30D158';
+                
+                console.log(`🎯 演示：从 ${demoTime} 秒继续`);
+                
+                demoInterval = setInterval(() => {
+                    if (demoTime > 0) {
+                        const minutes = Math.floor(demoTime / 60);
+                        const seconds = demoTime % 60;
+                        document.getElementById('demo-timer').textContent = 
+                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        demoTime--;
+                    } else {
+                        clearInterval(demoInterval);
+                        statusEl.textContent = '完成';
+                        statusEl.style.color = '#FF9500';
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetDemoTimer() {
+            clearInterval(demoInterval);
+            demoInterval = null;
+            demoTime = 10;
+            demoIsPaused = false;
+            demoPausedTime = null;
+            
+            document.getElementById('demo-timer').textContent = '00:10';
+            document.getElementById('demo-status').textContent = '未开始';
+            document.getElementById('demo-status').style.color = '#888';
+            
+            document.querySelector('.start-btn').disabled = false;
+            document.querySelector('.pause-btn').disabled = true;
+            document.querySelector('.pause-btn').textContent = '暂停';
+            document.querySelector('.reset-btn').disabled = true;
+        }
+
+        function updateChecklistItem(checkbox) {
+            const item = checkbox.closest('.checklist-item');
+            if (checkbox.checked) {
+                item.classList.add('checked');
+            } else {
+                item.classList.remove('checked');
+            }
+        }
+
+        function getFinalTestResult() {
+            const checkedItems = document.querySelectorAll('.checklist-item input:checked').length;
+            const totalItems = document.querySelectorAll('.checklist-item input').length;
+            
+            const resultDiv = document.getElementById('final-test-result');
+            
+            const score = checkedItems / totalItems;
+            const passed = score >= 0.8;
+            
+            resultDiv.className = passed ? 'test-pass' : (score >= 0.5 ? 'test-pending' : 'test-fail');
+            resultDiv.innerHTML = `
+                <strong>🤖 TESTAI 最终验证结果：${passed ? '✅ 优秀通过' : score >= 0.5 ? '⚠️ 部分通过' : '❌ 需要修复'}</strong><br>
+                <br>
+                <strong>详细分析：</strong><br>
+                验证项目: ${checkedItems}/${totalItems} (${Math.round(score*100)}%)<br>
+                <br>
+                <strong>@UIAI 界面评估：</strong><br>
+                ${passed ? '✅ Play/Pause按钮交互符合用户预期，状态切换自然流畅' : '⚠️ 按钮交互存在问题，影响用户体验'}<br>
+                <br>
+                <strong>@CMAI 代码评估：</strong><br>
+                ${passed ? '✅ 计时器逻辑正确，暂停/恢复状态管理完善' : '⚠️ 计时器逻辑需要优化，状态管理有问题'}<br>
+                <br>
+                ${passed ? 
+                    '<strong style="color: #30D158;">🎉 Play/Pause继续计时功能完美实现！</strong><br>用户可以随时暂停并从暂停点继续，符合直观的使用习惯。' : 
+                    score >= 0.5 ?
+                    '<strong style="color: #FF9500;">💡 功能基本可用，但仍有改进空间。</strong><br>请检查未通过的验证项目。' :
+                    '<strong style="color: #FF3B30;">⚠️ 功能存在严重问题，需要重新修复。</strong>'
+                }
+            `;
+        }
+
+        // 页面加载完成时的初始化
+        window.addEventListener('load', () => {
+            console.log('🤖 TESTAI Play/Pause继续计时验证工具已加载');
+            showToast('🎮 准备测试Play/Pause继续计时功能', 'info');
+        });
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#30D158' : '#007AFF'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

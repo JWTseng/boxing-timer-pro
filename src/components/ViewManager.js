@@ -244,10 +244,13 @@ export class ViewManager {
     if (!this.timePicker || !this.currentPhase) return;
     
     const totalSeconds = this.timePicker.getValue();
+    // CMAI修复：添加DOM元素安全检查
     const timeElement = document.getElementById(`${this.currentPhase}-time`);
     
     if (timeElement) {
       timeElement.textContent = this.formatTime(totalSeconds);
+    } else {
+      console.warn(`⚠️ 无法找到时间显示元素: ${this.currentPhase}-time`);
     }
     
     // 更新总时长
