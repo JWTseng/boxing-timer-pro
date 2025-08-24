@@ -33,10 +33,11 @@ export class TimerEngine {
         
         // 计时设置
         this.settings = {
-            roundTime: 180,      // 回合时长(秒)
+            roundTime: 30,       // 回合时长(秒)
             restTime: 60,        // 休息时长(秒)
             prepareTime: 10,     // 准备时长(秒)
-            roundCount: 3,       // 回合数
+            warningTime: 10,     // 警告时长(秒) - 新增
+            roundCount: 10,      // 回合数
             soundScheme: 'bell'  // 音效方案
         };
         
@@ -45,6 +46,8 @@ export class TimerEngine {
         this.totalRounds = 0;
         this.remainingTime = 0;
         this.totalElapsedTime = 0;
+        this.isWarning = false;          // 是否在警告状态
+        this.lastWarningState = false;   // 上一次警告状态
         
         // Web Worker 相关
         this.timerWorker = null;
@@ -54,9 +57,11 @@ export class TimerEngine {
         this.eventCallbacks = {
             stateChange: [],
             phaseChange: [],
+            warningChange: [],    // 新增：警告状态变化
             tick: [],
             roundComplete: [],
-            trainingComplete: []
+            trainingComplete: [],
+            countdownTick: []     // 新增：倒计时事件
         };
         
         // 后台运行相关
@@ -265,11 +270,20 @@ export class TimerEngine {
             case 'tick':
                 this.remainingTime = Math.floor(remaining / 1000);
                 this.totalElapsedTime += 0.05; // 50ms 间隔
+                
+                // 检查WARNING状态变化
+                this.checkWarningState();
+                
+                // 检查倒计时事件（最后3秒）
+                this.checkCountdownEvents();
+                
                 this.emitEvent('tick', {
                     remainingTime: this.remainingTime,
                     elapsed: Math.floor(elapsed / 1000),
                     phase: this.currentPhase,
-                    round: this.currentRound
+                    round: this.currentRound,
+                    isWarning: this.isWarning,
+                    totalRemaining: this.calculateTotalRemaining()
                 });
                 break;
                 
@@ -456,11 +470,127 @@ export class TimerEngine {
         this.currentRound = 0;
         this.remainingTime = 0;
         this.totalElapsedTime = 0;
+        this.isWarning = false;         // 清除WARNING状态
+        this.lastWarningState = false;  // 清除WARNING历史状态
         
         this.emitEvent('stateChange', {
             state: this.state,
-            phase: this.currentPhase
+            phase: this.currentPhase,
+            isWarning: this.isWarning
         });
+    }
+
+    /**
+     * 检查WARNING状态变化
+     */
+    checkWarningState() {
+        // 只在ROUND阶段检查WARNING
+        if (this.currentPhase === TrainingPhase.ROUND) {
+            const shouldBeWarning = this.remainingTime <= this.settings.warningTime;
+            
+            if (shouldBeWarning !== this.lastWarningState) {
+                this.isWarning = shouldBeWarning;
+                this.lastWarningState = shouldBeWarning;
+                
+                // 触发WARNING状态变化事件
+                this.emitEvent('warningChange', {
+                    isWarning: this.isWarning,
+                    remainingTime: this.remainingTime,
+                    round: this.currentRound
+                });
+                
+                if (this.isWarning) {
+                    console.log(`⚠️ 进入WARNING状态 - 第${this.currentRound}回合剩余${this.remainingTime}秒`);
+                }
+            }
+        } else {
+            // 非ROUND阶段，确保WARNING状态为false
+            if (this.isWarning) {
+                this.isWarning = false;
+                this.lastWarningState = false;
+            }
+        }
+    }
+    
+    /**
+     * 检查倒计时事件（最后3秒）
+     */
+    checkCountdownEvents() {
+        if (this.remainingTime <= 3 && this.remainingTime > 0) {
+            this.emitEvent('countdownTick', {
+                secondsRemaining: this.remainingTime,
+                phase: this.currentPhase,
+                isWarning: this.isWarning
+            });
+        }
+    }
+    
+    /**
+     * 计算总剩余时间
+     */
+    calculateTotalRemaining() {
+        let remaining = this.remainingTime; // 当前相位剩余
+        
+        if (this.currentPhase === TrainingPhase.PREPARE) {
+            // 准备阶段：还需要完成所有回合
+            remaining += (this.settings.roundTime + this.settings.restTime) * this.settings.roundCount - this.settings.restTime;
+        } else if (this.currentPhase === TrainingPhase.ROUND) {
+            // 回合阶段：当前回合剩余 + 后续回合
+            const remainingRounds = this.settings.roundCount - this.currentRound;
+            if (remainingRounds > 0) {
+                remaining += this.settings.restTime + // 当前回合后的休息
+                    (this.settings.roundTime + this.settings.restTime) * remainingRounds - 
+                    this.settings.restTime; // 最后不需要休息
+            }
+        } else if (this.currentPhase === TrainingPhase.REST) {
+            // 休息阶段：当前休息剩余 + 后续回合
+            const remainingRounds = this.settings.roundCount - this.currentRound;
+            if (remainingRounds > 0) {
+                remaining += (this.settings.roundTime + this.settings.restTime) * remainingRounds - 
+                    this.settings.restTime; // 最后不需要休息
+            }
+        }
+        
+        return Math.max(0, remaining);
+    }
+    
+    /**
+     * 格式化时间显示
+     */
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    /**
+     * 获取相位颜色
+     */
+    getPhaseColor() {
+        if (this.currentPhase === TrainingPhase.PREPARE) {
+            return '#DED140'; // 黄色
+        } else if (this.currentPhase === TrainingPhase.ROUND) {
+            return this.isWarning ? '#FF9500' : '#4CAF50'; // 橙色或绿色
+        } else if (this.currentPhase === TrainingPhase.REST) {
+            return '#FF5722'; // 红色
+        }
+        return '#2C2C2E'; // 默认深色
+    }
+    
+    /**
+     * 获取相位显示名称
+     */
+    getPhaseDisplayName() {
+        switch(this.currentPhase) {
+            case TrainingPhase.PREPARE:
+                return 'PREPARE';
+            case TrainingPhase.ROUND:
+                return `ROUND ${this.currentRound.toString().padStart(2, '0')}`;
+            case TrainingPhase.REST:
+                return 'REST';
+            default:
+                return 'UNKNOWN';
+        }
     }
 
     /**
@@ -699,6 +829,8 @@ export class TimerEngine {
             totalRounds: this.totalRounds,
             remainingTime: this.remainingTime,
             totalElapsedTime: this.totalElapsedTime,
+            isWarning: this.isWarning,                    // 是否在WARNING状态
+            totalRemaining: this.calculateTotalRemaining(), // 总剩余时间
             settings: { ...this.settings }
         };
     }

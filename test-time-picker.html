@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间选择器测试</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1C1C1E;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .test-container {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-button:hover {
+            background: #0056CC;
+        }
+        .debug-info {
+            background: #2C2C2E;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🥊 时间选择器测试</h1>
+        <p>点击下面的按钮测试时间选择器功能</p>
+        
+        <button class="test-button" onclick="testTimePicker('prepare')">测试 PREPARE</button>
+        <button class="test-button" onclick="testTimePicker('round')">测试 ROUND</button>
+        <button class="test-button" onclick="testTimePicker('warning')">测试 WARNING</button>
+        <button class="test-button" onclick="testTimePicker('rest')">测试 REST</button>
+        
+        <div class="debug-info" id="debug-info">
+            <h3>🔍 调试信息</h3>
+            <div id="debug-content">等待测试...</div>
+        </div>
+    </div>
+
+    <!-- 时间选择器模态框 -->
+    <div id="time-adjustment-modal" class="modal-overlay" style="display: none;">
+        <div class="time-adjustment-content">
+            <!-- 顶部显示区 -->
+            <section class="time-display-section">
+                <div class="phase-time-card">
+                    <h2 id="phase-title" class="phase-title">PREPARE</h2>
+                    <div id="current-time-display" class="time-display-large">00:10</div>
+                </div>
+            </section>
+
+            <!-- 预设按钮区 -->
+            <section class="preset-buttons-section">
+                <div class="preset-buttons-row" id="preset-buttons">
+                    <button class="preset-time-btn" data-time="10">00:10</button>
+                    <button class="preset-time-btn" data-time="20">00:20</button>
+                    <button class="preset-time-btn" data-time="60">01:00</button>
+                </div>
+            </section>
+
+            <!-- 时间滚轮选择器 -->
+            <section class="time-picker-section">
+                <div class="time-picker-container">
+                    <div class="picker-column">
+                        <div class="picker-label">mins</div>
+                        <div class="picker-wheel" id="minutes-wheel">
+                            <div class="picker-items" id="minutes-items">
+                                <!-- 动态生成 0-59 分钟 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="picker-column">
+                        <div class="picker-label">secs</div>
+                        <div class="picker-wheel" id="seconds-wheel">
+                            <div class="picker-items" id="seconds-items">
+                                <!-- 动态生成 0-59 秒 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 确认按钮 -->
+            <section class="modal-actions">
+                <button id="time-done-btn" class="done-button">DONE</button>
+            </section>
+        </div>
+    </div>
+
+    <script type="module">
+        import { TimePicker } from '/src/components/TimePicker.js';
+        
+        // 创建全局实例
+        let timePicker = null;
+        let debugElement = document.getElementById('debug-content');
+        
+        function updateDebug(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+        
+        function testTimePicker(phase) {
+            updateDebug(`🎯 开始测试 ${phase} 时间选择器`);
+            
+            if (!timePicker) {
+                updateDebug('🏗️ 创建 TimePicker 实例...');
+                timePicker = new TimePicker(document.body);
+                timePicker.init();
+                
+                // 监听时间更新事件
+                document.addEventListener('timeUpdated', (e) => {
+                    updateDebug(`✅ 时间已更新: ${e.detail.phase} = ${e.detail.time} (${e.detail.seconds}秒)`);
+                });
+                
+                updateDebug('✅ TimePicker 创建完成');
+            }
+            
+            // 测试显示
+            const testTimes = {
+                prepare: '00:10',
+                round: '01:30',
+                warning: '00:05',
+                rest: '00:30'
+            };
+            
+            const currentTime = testTimes[phase] || '00:30';
+            updateDebug(`📱 显示时间选择器: ${phase} = ${currentTime}`);
+            
+            timePicker.show(phase, currentTime);
+            
+            // 检查DOM元素生成情况
+            setTimeout(() => {
+                const minutesItems = document.getElementById('minutes-items');
+                const secondsItems = document.getElementById('seconds-items');
+                
+                updateDebug(`🔍 DOM检查结果:`);
+                updateDebug(`  - minutes-items 存在: ${!!minutesItems}`);
+                updateDebug(`  - seconds-items 存在: ${!!secondsItems}`);
+                updateDebug(`  - minutes-items 子元素数: ${minutesItems?.children.length || 0}`);
+                updateDebug(`  - seconds-items 子元素数: ${secondsItems?.children.length || 0}`);
+                updateDebug(`  - minutes-items 可见: ${minutesItems?.offsetHeight > 0}`);
+                updateDebug(`  - seconds-items 可见: ${secondsItems?.offsetHeight > 0}`);
+                
+                if (minutesItems?.children.length > 0) {
+                    updateDebug(`  - 第一个分钟项内容: "${minutesItems.children[0].textContent}"`);
+                    updateDebug(`  - 第一个分钟项类名: "${minutesItems.children[0].className}"`);
+                }
+                
+                if (secondsItems?.children.length > 0) {
+                    updateDebug(`  - 第一个秒钟项内容: "${secondsItems.children[0].textContent}"`);
+                    updateDebug(`  - 第一个秒钟项类名: "${secondsItems.children[0].className}"`);
+                }
+            }, 500);
+        }
+        
+        // 暴露到全局作用域
+        window.testTimePicker = testTimePicker;
+        
+        updateDebug('🚀 测试页面加载完成');
+    </script>
+</body>
+</html>

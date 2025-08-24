@@ -1,6 +1,7 @@
 // Boxing Timer Pro - UI控制器
 // 负责管理用户界面交互和状态更新
 
+import { TimePicker } from './TimePicker.js';
 import { TimerState, TrainingPhase } from '../timer/TimerEngine.js';
 import { SoundType } from '../audio/AudioManager.js';
 
@@ -9,7 +10,7 @@ import { SoundType } from '../audio/AudioManager.js';
  * 负责协调UI与各个功能模块的交互
  */
 export class UIController {
-    constructor(dependencies) {
+    constructor(dependencies = {}) {
         this.timer = dependencies.timer;
         this.audio = dependencies.audio;
         this.database = dependencies.database;
@@ -24,6 +25,9 @@ export class UIController {
         
         // 界面状态
         this.currentView = 'main';
+        
+        // 时间选择器
+        this.timePicker = null;
         
         console.log('🎮 UIController 实例化完成');
     }
@@ -45,6 +49,9 @@ export class UIController {
             // 初始化UI状态
             this.initializeUI();
             
+            // 初始化时间选择器
+            this.initTimePicker();
+            
             // 加载默认预设
             await this.loadDefaultPreset();
             
@@ -57,26 +64,41 @@ export class UIController {
     }
 
     /**
-     * 获取UI元素引用
+     * 获取UI元素引用 - 匹配新的HTML布局
      */
     getElementReferences() {
-        // 主要控件
-        this.elements.startPauseBtn = document.getElementById('start-pause-btn');
-        this.elements.resetBtn = document.getElementById('reset-btn');
+        // 主视图
+        this.elements.setupView = document.getElementById('timer-setup-view');
+        this.elements.runningView = document.getElementById('timer-running-view');
+        
+        // 回合控制
+        this.elements.roundsCount = document.getElementById('rounds-count');
+        this.elements.roundsMinus = document.getElementById('rounds-minus');
+        this.elements.roundsPlus = document.getElementById('rounds-plus');
+        
+        // 时长设置按钮
+        this.elements.prepareTime = document.getElementById('prepare-time');
+        this.elements.roundTime = document.getElementById('round-time');
+        this.elements.warningTime = document.getElementById('warning-time');
+        this.elements.restTime = document.getElementById('rest-time');
+        
+        // 开始按钮
+        this.elements.startBtn = document.getElementById('start-btn');
+        
+        // 总时间显示
+        this.elements.totalTime = document.getElementById('total-time');
+        
+        // 菜单按钮
+        this.elements.menuBtn = document.getElementById('menu-btn');
+        
+        // 运行时界面元素
+        this.elements.roundInfo = document.getElementById('round-info');
+        this.elements.phaseInfo = document.getElementById('phase-info');
         this.elements.mainTimer = document.getElementById('main-timer');
-        this.elements.timerIcon = document.getElementById('timer-icon');
-        this.elements.roundStatus = document.getElementById('round-status');
-        this.elements.currentPreset = document.getElementById('current-preset');
-        this.elements.progressBar = document.querySelector('.progress-fill');
+        this.elements.pauseBtn = document.getElementById('pause-btn');
+        this.elements.stopBtn = document.getElementById('stop-btn');
         
-        // 导航按钮
-        this.elements.presetsBtn = document.getElementById('presets-btn');
-        this.elements.settingsBtn = document.getElementById('settings-btn');
-        this.elements.logsBtn = document.getElementById('logs-btn');
-        this.elements.presetsNavBtn = document.getElementById('presets-nav-btn');
-        this.elements.settingsNavBtn = document.getElementById('settings-nav-btn');
-        
-        console.log('🔗 UI元素引用获取完成');
+        console.log('🔗 UI元素引用获取完成 (新布局)');
     }
 
     /**
@@ -778,6 +800,159 @@ export class UIController {
      */
     getCurrentView() {
         return this.currentView;
+    }
+
+    // ========== 新布局专用方法 ==========
+    
+    /**
+     * 调整回合数
+     */
+    adjustRounds(delta) {
+        const current = parseInt(this.elements.roundsCount.textContent);
+        const newValue = Math.max(1, Math.min(99, current + delta));
+        this.elements.roundsCount.textContent = newValue;
+        this.timer.updateSettings({ roundCount: newValue });
+        this.updateTotalTime();
+        console.log(`🔄 回合数调整为: ${newValue}`);
+    }
+    
+    /**
+     * 初始化时间选择器
+     */
+    initTimePicker() {
+        this.timePicker = new TimePicker();
+        this.timePicker.init();
+        
+        // 监听时间更新事件
+        document.addEventListener('timeUpdated', (e) => {
+            this.handleTimeUpdate(e.detail);
+        });
+        
+        console.log('🎛️ 时间选择器初始化完成');
+    }
+    
+    /**
+     * 显示时长调整界面
+     */
+    showTimeAdjustment(phase) {
+        if (!this.timePicker) return;
+        
+        // 获取当前时间
+        const currentTimeElement = this.elements[`${phase}Time`];
+        const currentTime = currentTimeElement ? currentTimeElement.textContent : '00:10';
+        
+        // 显示时间选择器
+        this.timePicker.show(phase, currentTime);
+        
+        console.log(`⏰ 显示${phase}阶段时长调整: ${currentTime}`);
+    }
+    
+    /**
+     * 处理时间更新
+     */
+    handleTimeUpdate(data) {
+        const { phase, time, seconds } = data;
+        
+        // 更新对应的时间标签
+        const timeElement = this.elements[`${phase}Time`];
+        if (timeElement) {
+            timeElement.textContent = time;
+        }
+        
+        // 更新计时器设置
+        const settingsKey = {
+            prepare: 'prepareTime',
+            round: 'roundTime', 
+            warning: 'warningTime',
+            rest: 'restTime'
+        }[phase];
+        
+        if (settingsKey) {
+            this.timer.updateSettings({ [settingsKey]: seconds });
+        }
+        
+        // 更新总时间显示
+        this.updateTotalTime();
+        
+        console.log(`📝 ${phase}时间已更新: ${time} (${seconds}秒)`);
+    }
+    
+    /**
+     * 开始训练
+     */
+    startTraining() {
+        console.log('🚀 开始训练');
+        this.showView('running');
+        this.timer.start();
+    }
+    
+    /**
+     * 暂停训练
+     */
+    pauseTraining() {
+        console.log('⏸️ 暂停训练');
+        this.timer.pause();
+    }
+    
+    /**
+     * 停止训练
+     */
+    stopTraining() {
+        console.log('⏹️ 停止训练');
+        this.timer.stop();
+        this.showView('setup');
+    }
+    
+    /**
+     * 显示设置
+     */
+    showSettings() {
+        console.log('⚙️ 显示设置');
+        // TODO: 实现设置界面
+    }
+    
+    /**
+     * 切换视图
+     */
+    showView(viewName) {
+        // 隐藏所有视图
+        if (this.elements.setupView) this.elements.setupView.style.display = 'none';
+        if (this.elements.runningView) this.elements.runningView.style.display = 'none';
+        
+        // 显示指定视图
+        switch(viewName) {
+            case 'setup':
+                if (this.elements.setupView) {
+                    this.elements.setupView.style.display = 'flex';
+                }
+                break;
+            case 'running':
+                if (this.elements.runningView) {
+                    this.elements.runningView.style.display = 'block';
+                }
+                break;
+        }
+        
+        console.log(`🔄 切换到视图: ${viewName}`);
+    }
+    
+    /**
+     * 更新总时间显示
+     */
+    updateTotalTime() {
+        const rounds = parseInt(this.elements.roundsCount.textContent);
+        const prepareTime = this.parseTimeString(this.elements.prepareTime.textContent);
+        const roundTime = this.parseTimeString(this.elements.roundTime.textContent);
+        const restTime = this.parseTimeString(this.elements.restTime.textContent);
+        
+        const totalSeconds = prepareTime + (roundTime + restTime) * rounds - restTime;
+        const totalTimeFormatted = this.formatTime(totalSeconds);
+        
+        if (this.elements.totalTime) {
+            this.elements.totalTime.textContent = totalTimeFormatted;
+        }
+        
+        console.log(`📊 总时间更新: ${totalTimeFormatted}`);
     }
 
     /**

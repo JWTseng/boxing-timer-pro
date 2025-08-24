@@ -36,12 +36,13 @@ export class ViewManager {
       this.showView('timer-running-view');
     });
     
-    // 时长标签点击事件
-    document.querySelectorAll('.time-pill').forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        const phase = e.target.closest('.phase-item')?.dataset.phase;
+    // 时长标签点击事件 - 修复选择器并添加时间选择器支持
+    document.querySelectorAll('.time-tag').forEach(timeTag => {
+      timeTag.addEventListener('click', (e) => {
+        const phase = e.target.closest('.phase-row')?.dataset.phase;
         if (phase) {
-          this.showPhaseAdjustment(phase);
+          console.log(`🎛️ 点击${phase}时间设置`);
+          this.showTimePicker(phase, e.target.textContent);
         }
       });
     });
@@ -99,6 +100,39 @@ export class ViewManager {
     }
   }
   
+  showTimePicker(phase, currentTimeText) {
+    // 使用时间选择器弹窗而不是切换到阶段调整视图
+    if (!this.timePicker) {
+      this.timePicker = new TimePicker(document.body); // 传递正确的容器参数
+      this.timePicker.init();
+      
+      // 监听时间更新事件
+      document.addEventListener('timeUpdated', (e) => {
+        this.handleTimeUpdate(e.detail);
+      });
+      
+      console.log('🎛️ TimePicker 已创建并初始化');
+    }
+    
+    console.log(`📱 显示时间选择器: ${phase} = ${currentTimeText}`);
+    this.timePicker.show(phase, currentTimeText);
+  }
+  
+  handleTimeUpdate(data) {
+    const { phase, time, seconds } = data;
+    
+    // 更新对应的时间标签
+    const timeElement = document.getElementById(`${phase}-time`);
+    if (timeElement) {
+      timeElement.textContent = time;
+    }
+    
+    // 更新总时间显示
+    this.updateTotalTime();
+    
+    console.log(`📝 ${phase}时间已更新: ${time} (${seconds}秒)`);
+  }
+
   showPhaseAdjustment(phase) {
     this.currentPhase = phase;
     

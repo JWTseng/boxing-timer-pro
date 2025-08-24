@@ -2,6 +2,17 @@
 
 专业拳击/搏击训练计时器 Web 应用
 
+## 🚨 开发者重要提醒
+
+**本项目采用强制性AI代理工作流程管理，任何开发工作都必须严格遵守标准流程：**
+
+👉 **开始开发前必读**：[`MANDATORY_WORKFLOW.md`](MANDATORY_WORKFLOW.md)  
+👉 **完整规则文档**：[`agents/AI_AGENT_WORKFLOW_MANAGEMENT.md`](agents/AI_AGENT_WORKFLOW_MANAGEMENT.md)
+
+**⚠️ 禁止跳过代理分析和质量验证步骤！**
+
+---
+
 ## 项目概述
 
 Boxing Timer Pro 是一款专注搏击与 HIIT 训练计时的专业 Web 应用，提供简洁直观的回合计时和多样化提示，帮助用户高效管理训练节奏。

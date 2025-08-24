@@ -268,6 +268,53 @@ export class AudioManager {
     }
 
     /**
+     * 播放相位音效（集成到计时引擎）
+     * @param {string} phase - 相位名称
+     * @param {Object} options - 选项
+     */
+    async playPhaseSound(phase, options = {}) {
+        let soundType;
+        
+        switch(phase) {
+            case 'prepare':
+                soundType = SoundType.PREPARE;
+                break;
+            case 'round':
+                soundType = SoundType.ROUND_START;
+                break;
+            case 'rest':
+                soundType = SoundType.REST_START;
+                break;
+            default:
+                return;
+        }
+        
+        await this.playSound(soundType, options);
+    }
+
+    /**
+     * 播放WARNING音效
+     */
+    async playWarningSound() {
+        await this.playSound(SoundType.WARNING);
+    }
+
+    /**
+     * 播放倒计时音效
+     * @param {number} secondsRemaining - 剩余秒数
+     */
+    async playCountdownSound(secondsRemaining) {
+        await this.playCountdown(secondsRemaining);
+    }
+
+    /**
+     * 播放训练完成音效
+     */
+    async playCompletionSound() {
+        await this.playSound(SoundType.TRAINING_COMPLETE);
+    }
+
+    /**
      * 播放音效
      */
     async playSound(soundType, options = {}) {
@@ -294,6 +341,9 @@ export class AudioManager {
             // 播放音效文件
             if (this.soundBuffers.has(soundType)) {
                 await this.playAudioBuffer(soundType, when, options);
+            } else {
+                // 回退到合成音效
+                await this.playSynthesizedSound(soundType, options);
             }
             
             // 播放语音提示
@@ -309,6 +359,120 @@ export class AudioManager {
         } catch (error) {
             console.error(`❌ 播放音效失败 (${soundType}):`, error);
         }
+    }
+
+    /**
+     * 播放合成音效（作为音频文件的回退方案）
+     */
+    async playSynthesizedSound(soundType, options = {}) {
+        if (!this.audioContext) return;
+
+        const now = this.audioContext.currentTime;
+        
+        switch(soundType) {
+            case SoundType.ROUND_START:
+                // 双铃声
+                this.createBell(now, 800, 0.8);
+                this.createBell(now + 0.2, 800, 0.7);
+                break;
+                
+            case SoundType.WARNING:
+                // 三连击警告
+                for (let i = 0; i < 3; i++) {
+                    this.createBeep(now + i * 0.15, 1500 + i * 50, 0.1, 0.8);
+                }
+                break;
+                
+            case SoundType.COUNTDOWN:
+                // 倒计时音
+                const freq = 1000 + (4 - (options.seconds || 1)) * 100;
+                this.createBeep(now, freq, 0.1, 0.6);
+                break;
+                
+            case SoundType.PREPARE:
+                // 准备音
+                this.createBeep(now, 800, 0.5, 0.6);
+                break;
+                
+            case SoundType.REST_START:
+                // 休息开始音
+                this.createTone(now, 600, 1.0, 0.6);
+                break;
+                
+            case SoundType.TRAINING_COMPLETE:
+                // 胜利音
+                [262, 330, 392, 523].forEach((freq, i) => {
+                    this.createTone(now + i * 0.15, freq, 0.3, 0.7);
+                });
+                break;
+        }
+    }
+
+    /**
+     * 创建铃声
+     */
+    createBell(startTime, frequency, volume) {
+        const harmonics = [1.0, 1.5, 2.0];
+        
+        harmonics.forEach((harmonic, index) => {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            
+            osc.frequency.value = frequency * harmonic;
+            osc.type = 'sine';
+            
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(volume / (index + 1), startTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.8);
+            
+            osc.connect(gain);
+            gain.connect(this.gainNode);
+            
+            osc.start(startTime);
+            osc.stop(startTime + 0.8);
+        });
+    }
+
+    /**
+     * 创建提示音
+     */
+    createBeep(startTime, frequency, duration, volume) {
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.frequency.value = frequency;
+        osc.type = 'square';
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.gainNode);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+    }
+
+    /**
+     * 创建音调
+     */
+    createTone(startTime, frequency, duration, volume) {
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.frequency.value = frequency;
+        osc.type = 'sine';
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(this.gainNode);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
     }
 
     /**

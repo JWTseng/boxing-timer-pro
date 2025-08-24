@@ -2,12 +2,14 @@
 // 专业拳击/搏击训练计时器
 
 import './styles/main.css';
-import { TimerEngine } from './timer/TimerEngine.js';
-import { AudioManager } from './audio/AudioManager.js';
-import { Database } from './storage/Database.js';
-import { SettingsManager } from './utils/SettingsManager.js';
-import { UIController } from './components/UIController.js';
+// import { UIController } from './components/UIController.js';
 import { ViewManager } from './components/ViewManager.js';
+import { TimePicker } from './components/TimePicker.js';
+// 暂时注释了复杂的依赖，优先解决基础问题
+// import { TimerEngine } from './timer/TimerEngine.js';
+// import { AudioManager } from './audio/AudioManager.js';
+// import { Database } from './storage/Database.js';
+// import { SettingsManager } from './utils/SettingsManager.js';
 
 /**
  * Boxing Timer Pro 应用主类
@@ -54,39 +56,34 @@ class BoxingTimerApp {
     }
 
     /**
-     * 初始化应用组件
+     * 初始化应用组件 - 简化版
      */
     async initializeComponents() {
-        // 初始化数据库
-        this.components.database = new Database();
-        await this.components.database.init();
+        console.log('📦 开始初始化组件...');
         
-        // 初始化设置管理器
-        this.components.settings = new SettingsManager();
-        await this.components.settings.init();
-        
-        // 初始化音频管理器
-        this.components.audio = new AudioManager();
-        await this.components.audio.init();
-        
-        // 初始化计时引擎
-        this.components.timer = new TimerEngine();
-        await this.components.timer.init();
-        
-        // 初始化UI控制器
-        this.components.ui = new UIController({
-            timer: this.components.timer,
-            audio: this.components.audio,
-            database: this.components.database,
-            settings: this.components.settings
-        });
-        await this.components.ui.init();
-        
-        // 初始化视图管理器
-        this.components.viewManager = new ViewManager();
-        console.log('🎛️ 视图管理器初始化完成');
-        
-        console.log('📦 所有组件初始化完成');
+        try {
+            // 初始化时间选择器
+            this.components.timePicker = new TimePicker(document.body);
+            this.components.timePicker.init();
+            console.log('🎛️ 时间选择器初始化完成');
+            
+            // 初始化视图管理器
+            this.components.viewManager = new ViewManager();
+            console.log('🖼️ 视图管理器初始化完成');
+            
+            // TODO: 等解决基础问题后，逐步添加其他组件
+            // this.components.timer = new TimerEngine();
+            // this.components.audio = new AudioManager();
+            // this.components.database = new Database();
+            // this.components.settings = new SettingsManager();
+            // this.components.ui = new UIController();
+            
+            console.log('✅ 基础组件初始化完成');
+            
+        } catch (error) {
+            console.error('❌ 组件初始化失败:', error);
+            throw error;
+        }
     }
 
     /**
@@ -96,25 +93,25 @@ class BoxingTimerApp {
         // 页面可见性变化 - 用于后台运行管理
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                this.components.timer.handlePageVisible();
+                this.components.timer?.handlePageVisible?.();
             } else {
-                this.components.timer.handlePageHidden();
+                this.components.timer?.handlePageHidden?.();
             }
         });
         
         // 页面焦点变化
         window.addEventListener('focus', () => {
-            this.components.timer.handlePageVisible();
+            this.components.timer?.handlePageVisible?.();
         });
         
         window.addEventListener('blur', () => {
-            this.components.timer.handlePageHidden();
+            this.components.timer?.handlePageHidden?.();
         });
         
         // 页面卸载前保存状态
         window.addEventListener('beforeunload', () => {
-            this.components.timer.saveState();
-            this.components.settings.saveSettings();
+            this.components.timer?.saveState?.();
+            this.components.settings?.saveSettings?.();
         });
         
         // 错误处理
